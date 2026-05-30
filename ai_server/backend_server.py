@@ -152,7 +152,17 @@ def _resolve_compute_dtype() -> torch.dtype:
 
 
 def build_prompt(instruction: str, battlefield_data: str) -> str:
+    system_context = (
+        "You are the WarMatrix Tactical AI Strategist. The wargame simulation has transitioned to a continuous, real-world coordinate system "
+        "with float values for coordinates and multi-layered semantic terrain (Urban cover, Plains open ground, Mountain elevation, "
+        "and rapid-transit Roads). The system operates on a time-stepped tick loop incorporating stateful units (Infantry, Armor, Recon, "
+        "Artillery, Logistics, Command) that transition through Active, Damaged, and Destroyed statuses. Weather conditions "
+        "(Fog, Storm, Sandstorm) directly reduce vision, movement, and accuracy. When providing briefings, sitreps, or explaining "
+        "decisions, always reason and speak in terms of these continuous spatial dynamics, cover values, weather impact, and "
+        "detailed stateful entity attributes."
+    )
     return (
+        f"System: {system_context}\n\n"
         "Below is an instruction that describes a task, paired with an input that provides further context. "
         "Write a response that appropriately completes the request.\n"
         "Return only the final SITREP output. Do not include reasoning, analysis notes, or <think> blocks.\n\n"
@@ -437,11 +447,21 @@ class BackendHandler(BaseHTTPRequestHandler):
                     masked_token = f"{api_key[:6]}...{api_key[-4:]}" if len(api_key) > 10 else "***"
                     log(f"Proxying request to LM Studio with token: {masked_token}")
                     
-                    # Map our internal keys to OpenAI-compatible messages
+                    # Map our internal keys to OpenAI-compatible messages with enriched system context
+                    system_message = (
+                        "You are the WarMatrix Tactical AI Strategist. The wargame simulation has transitioned to a continuous, real-world coordinate system "
+                        "with float values for coordinates and multi-layered semantic terrain (Urban cover, Plains open ground, Mountain elevation, "
+                        "and rapid-transit Roads). The system operates on a time-stepped tick loop incorporating stateful units (Infantry, Armor, Recon, "
+                        "Artillery, Logistics, Command) that transition through Active, Damaged, and Destroyed statuses. Weather conditions "
+                        "(Fog, Storm, Sandstorm) directly reduce vision, movement, and accuracy. When providing briefings, sitreps, or explaining "
+                        "decisions, always reason and speak in terms of these continuous spatial dynamics, cover values, weather impact, and "
+                        "detailed stateful entity attributes.\n\n"
+                        f"{instruction}"
+                    )
                     openai_payload = {
                         "model": "local-model",
                         "messages": [
-                            {"role": "system", "content": instruction},
+                            {"role": "system", "content": system_message},
                             {"role": "user", "content": battlefield_data}
                         ],
                         "temperature": float(body.get("temperature", DEFAULT_TEMPERATURE)),

@@ -34,10 +34,16 @@ Initialize the primary interface and the simulation engine.
     python -m venv .venv
     & .\.venv\Scripts\Activate.ps1
 
-    # Install core simulation requirements
+    # (1) Install core simulation engine requirements
+    #     Installs: numpy, fastapi, uvicorn, pydantic
     pip install -r backend/requirements.txt
-    ```
 
+    # (2) Install AI server requirements (GPU/LLM inference stack)
+    #     Installs: torch (CUDA 12.8), transformers, peft, bitsandbytes, accelerate
+    #     NOTE: Skip this step if you are using LM Studio (Method C in Phase 3).
+    pip install -r ai_server/requirements.txt
+    ```
+    
 ---
 
 ## 🧠 Phase 3: AI Server Configuration

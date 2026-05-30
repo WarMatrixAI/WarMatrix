@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, validator
-from typing import Dict
+from typing import Dict, List, Optional
 
 
 def _clamp(v: float) -> float:
@@ -61,3 +61,45 @@ def update_state(new_state: GameState) -> None:
         _CURRENT_STATE = new_state
     else:
         _CURRENT_STATE = GameState(**dict(new_state))
+
+
+# ─── Authoritative Spatial Wargaming Models ───────────────────────────────
+
+class BattlefieldUnit(BaseModel):
+    id: str
+    faction: str  # 'FRIENDLY' or 'ENEMY'
+    x: float
+    y: float
+    label: str
+    hp: float = 100.0
+    max_hp: float = 100.0
+    attack: float = 25.0
+    defense: float = 15.0
+    range: float = 2.0
+    mobility: float = 2.0
+    alive: bool = True
+    assetClass: Optional[str] = "Infantry"
+    allianceRole: Optional[str] = None
+    detection_range: float = 3.0
+
+
+class BattlefieldObjective(BaseModel):
+    id: str
+    x: float
+    y: float
+    label: str
+    controller: str = "NEUTRAL"  # 'FRIENDLY' | 'ENEMY' | 'NEUTRAL'
+    progress_friendly: float = 0.0
+    progress_enemy: float = 0.0
+
+
+class BattlefieldState(BaseModel):
+    turn: int = 1
+    width: int = 12
+    height: int = 8
+    weather: str = "Clear"
+    units: List[BattlefieldUnit] = []
+    objectives: List[BattlefieldObjective] = []
+    ended: bool = False
+    winner: Optional[str] = None
+    end_reason: Optional[str] = None
