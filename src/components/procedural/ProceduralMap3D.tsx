@@ -141,12 +141,24 @@ export function ProceduralMap3D({ mapData, activeLayers }: ProceduralMap3DProps)
     return mapData.roads.map((r) => {
       const [sx, sy] = gridToWorld(r.start[0], r.start[1], cols, rows);
       const [ex, ey] = gridToWorld(r.end[0], r.end[1], cols, rows);
+      
+      const isVertical = r.start[0] === r.end[0];
+      const thickness = r.type === 'Primary' ? 2.4 : (r.type === 'Secondary' ? 1.6 : 1.0);
+      const halfThick = thickness / 2;
+      
+      const len = isVertical ? Math.abs(sy - ey) + WORLD_SCALE : Math.abs(sx - ex) + WORLD_SCALE;
+      const cx = isVertical ? sx : (sx + ex) / 2;
+      const cy = isVertical ? (sy + ey) / 2 : sy;
+
       return {
         id: r.id,
-        start: [sx, sy, 0.05] as [number, number, number],
-        end: [ex, ey, 0.05] as [number, number, number],
-        color: ROAD_COLORS[r.type] || '#FFF',
-        thickness: r.type === 'Primary' ? 0.8 : (r.type === 'Secondary' ? 0.5 : 0.2),
+        type: r.type,
+        isVertical,
+        thickness,
+        halfThick,
+        len,
+        cx,
+        cy
       };
     });
   }, [mapData.roads, cols, rows]);
@@ -223,19 +235,94 @@ export function ProceduralMap3D({ mapData, activeLayers }: ProceduralMap3DProps)
             );
           })}
 
-        {/* Road network mesh representation */}
+        {/* Road network 3D representation */}
         {activeLayers.roads &&
           roadSegments.map((seg) => {
-            const points = [
-              new THREE.Vector3(seg.start[0], seg.start[1], seg.start[2]),
-              new THREE.Vector3(seg.end[0], seg.end[1], seg.end[2]),
-            ];
+            const { id, type, isVertical, thickness, halfThick, len, cx, cy } = seg;
+            
+            // Define structural dimensions based on road type (scaled up for blocky, premium look)
+            let deckHeight = 0.04;
+            let deckThickness = 0.03;
+            let guardrailHeight = 0.05;
+            let guardrailWidth = 0.06;
+            let showPillars = false;
+
+            if (type === 'Primary') {
+              deckHeight = 0.40;      // Major elevated highway
+              deckThickness = 0.08;
+              guardrailHeight = 0.12;
+              guardrailWidth = 0.10;
+              showPillars = true;
+            } else if (type === 'Secondary') {
+              deckHeight = 0.15;      // Raised arterial road
+              deckThickness = 0.05;
+              guardrailHeight = 0.08;
+              guardrailWidth = 0.08;
+            }
+
+            // Calculate support pillars for elevated highways
+            const pillars = [];
+            if (showPillars) {
+              const numColumns = Math.max(2, Math.floor(len / 8.0));
+              for (let k = 0; k < numColumns; k++) {
+                const ratio = numColumns > 1 ? k / (numColumns - 1) : 0.5;
+                const offset = len * 0.1; // 10% indent from ends
+                const pos = (len * 0.8) * ratio + offset - len / 2;
+                
+                const colX = isVertical ? cx : cx + pos;
+                const colY = isVertical ? cy + pos : cy;
+                pillars.push([colX, colY, deckHeight / 2] as [number, number, number]);
+              }
+            }
 
             return (
-              <line key={seg.id}>
-                <bufferGeometry attach="geometry" setFromPoints={points} />
-                <lineBasicMaterial attach="material" color={seg.color} linewidth={2} />
-              </line>
+              <group key={id}>
+                {/* 1. Support Pillars (Elevated Expressways) */}
+                {pillars.map((pos, pIdx) => (
+                  <mesh key={`${id}-pillar-${pIdx}`} position={pos}>
+                    <boxGeometry args={[0.5, 0.5, deckHeight]} />
+                    <meshStandardMaterial color="#0B132B" roughness={0.7} metalness={0.2} />
+                  </mesh>
+                ))}
+
+                {/* 2. Asphalt Deck Bed */}
+                <mesh position={[cx, cy, deckHeight - deckThickness / 2]}>
+                  <boxGeometry args={[isVertical ? thickness : len, isVertical ? len : thickness, deckThickness]} />
+                  <meshStandardMaterial color="#081121" roughness={0.9} metalness={0.2} emissive="#020E22" emissiveIntensity={0.6} />
+                </mesh>
+                
+                {/* 3. Left/Top Guardrail (Concrete barrier) */}
+                <mesh position={isVertical ? [cx - halfThick + guardrailWidth / 2, cy, deckHeight + guardrailHeight / 2] : [cx, cy + halfThick - guardrailWidth / 2, deckHeight + guardrailHeight / 2]}>
+                  <boxGeometry args={isVertical ? [guardrailWidth, len, guardrailHeight] : [len, guardrailWidth, guardrailHeight]} />
+                  <meshStandardMaterial color="#1F6FEB" roughness={0.8} emissive="#1F6FEB" emissiveIntensity={0.4} />
+                </mesh>
+
+                {/* 4. Right/Bottom Guardrail (Concrete barrier) */}
+                <mesh position={isVertical ? [cx + halfThick - guardrailWidth / 2, cy, deckHeight + guardrailHeight / 2] : [cx, cy - halfThick + guardrailWidth / 2, deckHeight + guardrailHeight / 2]}>
+                  <boxGeometry args={isVertical ? [guardrailWidth, len, guardrailHeight] : [len, guardrailWidth, guardrailHeight]} />
+                  <meshStandardMaterial color="#1F6FEB" roughness={0.8} emissive="#1F6FEB" emissiveIntensity={0.4} />
+                </mesh>
+
+                {/* 5. Glowing Center Markings */}
+                {type === 'Primary' && (
+                  <mesh position={[cx, cy, deckHeight + 0.001]}>
+                    <boxGeometry args={isVertical ? [0.08, len, 0.003] : [len, 0.08, 0.003]} />
+                    <meshStandardMaterial color="#FF9E0B" emissive="#FF9E0B" emissiveIntensity={1.5} />
+                  </mesh>
+                )}
+                {type === 'Secondary' && (
+                  <mesh position={[cx, cy, deckHeight + 0.001]}>
+                    <boxGeometry args={isVertical ? [0.06, len, 0.003] : [len, 0.06, 0.003]} />
+                    <meshStandardMaterial color="#00E5FF" emissive="#00E5FF" emissiveIntensity={1.0} />
+                  </mesh>
+                )}
+                {type === 'Local' && (
+                  <mesh position={[cx, cy, deckHeight + 0.001]}>
+                    <boxGeometry args={isVertical ? [0.04, len, 0.003] : [len, 0.04, 0.003]} />
+                    <meshStandardMaterial color="#8B5CF6" emissive="#8B5CF6" emissiveIntensity={0.6} />
+                  </mesh>
+                )}
+              </group>
             );
           })}
 

@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { UrbanMapResponse, CellMetadata } from '@/lib/procedural/types';
 import { DISTRICT_COLORS, ROAD_COLORS } from '@/lib/procedural/assetRegistry';
 import { ProceduralMap3D } from './ProceduralMap3D';
-import { Layers, Compass, Crosshair } from 'lucide-react';
+import { Layers, Compass, Crosshair, Eye, EyeOff } from 'lucide-react';
 
 interface ProceduralMapProps {
   mapData: UrbanMapResponse | null;
@@ -36,6 +36,13 @@ export function ProceduralMap({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [hoveredCell, setHoveredCell] = useState<CellMetadata | null>(null);
   const [dimensions, setDimensions] = useState({ width: 720, height: 480 });
+  const [hideStructures, setHideStructures] = useState(false);
+
+  useEffect(() => {
+    if (viewMode === '2d') {
+      setHideStructures(false);
+    }
+  }, [viewMode]);
 
   const [cols, rows] = mapData ? mapData.grid_size : [12, 8];
 
@@ -161,9 +168,9 @@ export function ProceduralMap({
     // Draw Roads
     if (activeLayers.roads) {
       mapData.roads.forEach((r) => {
-        // Flat, non-glow professional map colors
-        const borderColor = '#2D3748'; // Muted dark slate gray
-        const fillColor = '#0F172A';   // Deep slate blue/gray corridor fill
+        // Glowing tactical holographic road colors
+        const borderColor = '#1F6FEB'; // Electric blue curb border
+        const fillColor = '#0A1424';   // Cyber midnight blue asphalt fill
         
         // Define width of road corridors on canvas
         const thickness = r.type === 'Primary' ? 9 : (r.type === 'Secondary' ? 6 : 4);
@@ -207,8 +214,8 @@ export function ProceduralMap({
 
         // 3. Draw Center Lane Divider for Primary / Local roads
         if (r.type === 'Primary') {
-          ctx.strokeStyle = '#4A5568'; // Muted center line
-          ctx.lineWidth = 1;
+          ctx.strokeStyle = '#F59E0B'; // Glowing yellow/orange center line
+          ctx.lineWidth = 1.2;
           ctx.setLineDash([3, 4]);
           ctx.beginPath();
           ctx.moveTo(x0, y0);
@@ -216,7 +223,7 @@ export function ProceduralMap({
           ctx.stroke();
           ctx.setLineDash([]); // Reset
         } else if (r.type === 'Local') {
-          ctx.strokeStyle = '#2D3748';
+          ctx.strokeStyle = '#00e5ff'; // Glowing cyan center line
           ctx.lineWidth = 1;
           ctx.setLineDash([1, 4]);
           ctx.beginPath();
@@ -377,8 +384,37 @@ export function ProceduralMap({
       )}
 
       {/* 3D Mode */}
-      {viewMode === '3d' && (
-        <ProceduralMap3D mapData={mapData} activeLayers={activeLayers} />
+      {viewMode === '3d' && mapData && (
+        <>
+          <ProceduralMap3D
+            mapData={mapData}
+            activeLayers={
+              hideStructures
+                ? { roads: true, districts: false, buildings: false, metadata: false }
+                : activeLayers
+            }
+          />
+          <button
+            onClick={() => setHideStructures(!hideStructures)}
+            className={`absolute top-4 right-4 z-10 px-3.5 py-2 font-mono text-xs font-bold border rounded flex items-center gap-1.5 transition-all duration-200 shadow-xl ${
+              hideStructures
+                ? 'bg-[#EF4444]/20 text-[#EF4444] border-[#EF4444]/40 hover:bg-[#EF4444]/30'
+                : 'bg-[#0F1115]/80 text-[#00e5ff] border-[#1F6FEB]/30 hover:bg-[#1F6FEB]/20 hover:border-[#00e5ff]/50'
+            }`}
+          >
+            {hideStructures ? (
+              <>
+                <Eye className="w-3.5 h-3.5" />
+                <span>SHOW STRUCTURES</span>
+              </>
+            ) : (
+              <>
+                <EyeOff className="w-3.5 h-3.5" />
+                <span>HIDE STRUCTURES</span>
+              </>
+            )}
+          </button>
+        </>
       )}
     </div>
   );
