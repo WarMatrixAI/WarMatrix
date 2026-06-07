@@ -36,8 +36,8 @@ const courierNew = Courier_Prime({
   weight: ['400', '700'],
 });
 
-const GRID_COLS = 48;
-const GRID_ROWS = 32;
+const GRID_COLS = 80;
+const GRID_ROWS = 80;
 const WORLD_SCALE = 4;
 
 // Convert cell grid to world position (X, Y)

@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
-import { RefreshCw, Play, ShieldAlert } from 'lucide-react';
+import { RefreshCw, Play, ShieldAlert, Compass } from 'lucide-react';
+import { UrbanMapResponse } from '@/lib/procedural/types';
 
 interface SeedInputProps {
+  initialSeed: number;
+  mapData: UrbanMapResponse | null;
   onGenerate: (seed: number, size: 'Small' | 'Medium' | 'Large') => void;
   loading: boolean;
   activeLayers: {
     roads: boolean;
     districts: boolean;
     buildings: boolean;
-    infrastructure: boolean;
     metadata: boolean;
   };
   setActiveLayers: React.Dispatch<React.SetStateAction<{
     roads: boolean;
     districts: boolean;
     buildings: boolean;
-    infrastructure: boolean;
     metadata: boolean;
   }>>;
   viewMode: '2d' | '3d';
@@ -24,7 +25,17 @@ interface SeedInputProps {
   setMetadataField: (field: 'cover' | 'movement' | 'visibility' | 'comms') => void;
 }
 
+function cellToLatLong(x: number, y: number, cols: number, rows: number): string {
+  const lat = 45.0230 + (rows / 2 - y - 0.5) * 0.0015;
+  const lng = 122.4510 + (x - cols / 2 + 0.5) * 0.0022;
+  const latDir = lat >= 0 ? 'N' : 'S';
+  const lngDir = lng >= 0 ? 'E' : 'W';
+  return `${Math.abs(lat).toFixed(4)}°${latDir}, ${Math.abs(lng).toFixed(4)}°${lngDir}`;
+}
+
 export function SeedInput({
+  initialSeed,
+  mapData,
   onGenerate,
   loading,
   activeLayers,
@@ -34,7 +45,7 @@ export function SeedInput({
   metadataField,
   setMetadataField,
 }: SeedInputProps) {
-  const [seedInput, setSeedInput] = useState<string>('847293');
+  const [seedInput, setSeedInput] = useState<string>(initialSeed.toString());
   const [sizeInput, setSizeInput] = useState<'Small' | 'Medium' | 'Large'>('Medium');
 
   const handleGenerate = (e: React.FormEvent) => {
@@ -46,7 +57,7 @@ export function SeedInput({
   };
 
   const handleRandomize = () => {
-    const randSeed = Math.floor(Math.random() * 1000000);
+    const randSeed = Math.floor(Math.random() * 4294967296);
     setSeedInput(randSeed.toString());
     onGenerate(randSeed, sizeInput);
   };
@@ -203,6 +214,34 @@ export function SeedInput({
                 {label}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {mapData && (
+        <div className="border-t border-[#1F6FEB]/10 pt-4 flex flex-col gap-2">
+          <label className="text-[10px] text-[#9CA3AF] uppercase font-bold block">
+            Simulation Coordinates
+          </label>
+          <div className="bg-[#02050A] border border-[#1F6FEB]/25 rounded p-3 flex flex-col gap-2 text-[11px] text-[#E6EDF3] font-mono leading-relaxed">
+            <div className="flex items-center gap-1 text-[#00e5ff] text-xs font-bold border-b border-[#1F6FEB]/25 pb-1">
+              <Compass className="w-3.5 h-3.5" />
+              <span>ACTIVE READOUT</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-[#9CA3AF]">Grid Size:</span>
+              <span className="font-bold">{mapData.grid_size[0]} x {mapData.grid_size[1]} Cells</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-[#9CA3AF]">Active Seed:</span>
+              <span className="font-bold text-[#00e5ff]">{mapData.seed}</span>
+            </div>
+            <div className="flex flex-col gap-0.5 mt-1 pt-1 border-t border-[#1F6FEB]/10">
+              <span className="text-[#9CA3AF]">Center Position:</span>
+              <span className="font-bold text-[#00e5ff] text-[10px]">
+                {cellToLatLong(mapData.grid_size[0] / 2, mapData.grid_size[1] / 2, mapData.grid_size[0], mapData.grid_size[1])}
+              </span>
+            </div>
           </div>
         </div>
       )}

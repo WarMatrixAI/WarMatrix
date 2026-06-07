@@ -8,9 +8,9 @@ export const DISTRICT_COLORS = {
 };
 
 export const ROAD_COLORS = {
-  Primary: '#F59E0B',   // Orange Highway
-  Secondary: '#1F6FEB', // Blue Arterial
-  Local: '#9CA3AF',     // Gray Local
+  Primary: '#718096',   // Slate Gray
+  Secondary: '#4A5568', // Dark Slate
+  Local: '#2D3748',     // Deep Slate
 };
 
 export interface AssetInfo {

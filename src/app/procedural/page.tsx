@@ -23,17 +23,19 @@ export default function ProceduralSandboxPage() {
     roads: true,
     districts: true,
     buildings: true,
-    infrastructure: true,
     metadata: false,
   });
 
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   const [metadataField, setMetadataField] = useState<'cover' | 'movement' | 'visibility' | 'comms'>('cover');
 
+  // Generate a random 32-bit seed once on page load
+  const [initialSeed] = useState(() => Math.floor(Math.random() * 4294967296));
+
   // Trigger initial generation on page load
   useEffect(() => {
-    generate(847293, 'Medium');
-  }, [generate]);
+    generate(initialSeed, 'Medium');
+  }, [generate, initialSeed]);
 
   return (
     <div className="flex flex-col h-screen bg-[#02050A] text-[#E6EDF3] overflow-hidden select-none font-mono">
@@ -96,6 +98,8 @@ export default function ProceduralSandboxPage() {
       <div className="flex-1 flex overflow-hidden">
         {/* Left Side Control Panel */}
         <SeedInput
+          initialSeed={initialSeed}
+          mapData={mapData}
           onGenerate={generate}
           loading={loading}
           activeLayers={activeLayers}

@@ -1,0 +1,38 @@
+{
+  "/3d_assets/buildings/residential/asia_building.glb": { "scaleX": 0.05, "scaleY": 0.05, "scaleZ": 0.05, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/residential/brutalist_building.glb": { "scaleX": 0.04, "scaleY": 0.04, "scaleZ": 0.04, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/residential/futuristic_building.glb": { "scaleX": 0.03, "scaleY": 0.03, "scaleZ": 0.03, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/residential/building_1.glb": { "scaleX": 0.05, "scaleY": 0.05, "scaleZ": 0.05, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/residential/building_2.glb": { "scaleX": 0.05, "scaleY": 0.05, "scaleZ": 0.05, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/residential/building_3.glb": { "scaleX": 0.05, "scaleY": 0.05, "scaleZ": 0.05, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/residential/building_6.glb": { "scaleX": 0.05, "scaleY": 0.05, "scaleZ": 0.05, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+
+  "/3d_assets/buildings/commercial/building_-_new_york.glb": { "scaleX": 0.03, "scaleY": 0.03, "scaleZ": 0.03, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/commercial/city_building_2.glb": { "scaleX": 0.04, "scaleY": 0.04, "scaleZ": 0.04, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/commercial/game_ready_building_5.glb": { "scaleX": 0.03, "scaleY": 0.03, "scaleZ": 0.03, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/commercial/old_building_1.glb": { "scaleX": 0.05, "scaleY": 0.05, "scaleZ": 0.05, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+
+  "/3d_assets/buildings/industrial/industrial_building.glb": { "scaleX": 0.06, "scaleY": 0.06, "scaleZ": 0.06, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/industrial/warehouse_building.glb": { "scaleX": 0.05, "scaleY": 0.05, "scaleZ": 0.05, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/industrial/warehouse_building_1.glb": { "scaleX": 0.05, "scaleY": 0.05, "scaleZ": 0.05, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/industrial/abandoned_building.glb": { "scaleX": 0.06, "scaleY": 0.06, "scaleZ": 0.06, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+
+  "/3d_assets/buildings/office/office_building.glb": { "scaleX": 0.04, "scaleY": 0.04, "scaleZ": 0.04, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/office/building_05.glb": { "scaleX": 0.04, "scaleY": 0.04, "scaleZ": 0.04, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/office/whitehall_building.glb": { "scaleX": 0.04, "scaleY": 0.04, "scaleZ": 0.04, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/office/city_building.glb": { "scaleX": 0.03, "scaleY": 0.03, "scaleZ": 0.03, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+
+  "/3d_assets/buildings/landmark/tu_ducs_tomb_-_stele_building_cyark_dataset.glb": { "scaleX": 0.03, "scaleY": 0.03, "scaleZ": 0.03, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/landmark/sci-fi_building.glb": { "scaleX": 0.04, "scaleY": 0.04, "scaleZ": 0.04, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/landmark/sci-fi_building_2.glb": { "scaleX": 0.04, "scaleY": 0.04, "scaleZ": 0.04, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/buildings/landmark/the_view_building.glb": { "scaleX": 0.03, "scaleY": 0.03, "scaleZ": 0.03, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+
+  "/3d_assets/communication_tower/signal_tower.glb": { "scaleX": 0.08, "scaleY": 0.08, "scaleZ": 0.08, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/communication_tower/40_meter_radiotower.glb": { "scaleX": 0.08, "scaleY": 0.08, "scaleZ": 0.08, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/communication_tower/prefabbed_radio_tower_with_blankout_signs.glb": { "scaleX": 0.08, "scaleY": 0.08, "scaleZ": 0.08, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/radar_station/devils_slide_bunker_-_pacifica_ca.glb": { "scaleX": 0.05, "scaleY": 0.05, "scaleZ": 0.05, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+
+  "/3d_assets/bridge/stone_bridge.glb": { "scaleX": 0.08, "scaleY": 0.08, "scaleZ": 0.08, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/bridge/wooden_bridge.glb": { "scaleX": 0.08, "scaleY": 0.08, "scaleZ": 0.08, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 },
+  "/3d_assets/bridge/lowpoly_manhattan_bridge.glb": { "scaleX": 0.05, "scaleY": 0.05, "scaleZ": 0.05, "rotationOffset": 0, "positionOffset": [0, 0, 0], "heightBlocks": 1 }
+}
