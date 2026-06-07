@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const isVercel = process.env.VERCEL === 'true';
 const apiBaseUrl = isVercel
-    ? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/api` : '/api')
+    ? '/api'
     : 'http://localhost:8000/api';
 
 // ─── Input / Output Schemas ───────────────────────────────────────────────────
