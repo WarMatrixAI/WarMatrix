@@ -8,7 +8,10 @@ app = FastAPI(title="WarMatrix Backend Engine",root_path="/backend")
 # Add CORS so the frontend can communicate with the backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    # Use allow_origin_regex for your pattern
+    allow_origin_regex=r"https://.*\.vercel\.app",
+    # You can still use allow_origins for exact matches like localhost
+    allow_origins=["http://localhost"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
