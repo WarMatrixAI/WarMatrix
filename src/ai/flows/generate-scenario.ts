@@ -8,7 +8,7 @@ import {
 
 const isVercel = process.env.VERCEL === 'true';
 const apiBaseUrl = isVercel
-    ? (process.env.NEXT_PUBLIC_BACKEND_URL ? `https://${process.env.NEXT_PUBLIC_BACKEND_URL}/api` : '/api')
+    ? (process.env.BACKEND_URL ? `https://${process.env.BACKEND_URL}/api` : '/api')
     : 'http://localhost:8000/api';
 
 // ── Input ─────────────────────────────────────────────────────────────────────
