@@ -74,16 +74,32 @@ function AccordionPanel({
     const isOpen = activeId === id;
     const contentRef = useRef<HTMLDivElement>(null);
     const [height, setHeight] = useState(0);
-
-    const MAX_HEIGHT = 300;
+    const [isTransitioned, setIsTransitioned] = useState(false);
 
     useEffect(() => {
-        if (isOpen && contentRef.current) {
-            setHeight(Math.min(contentRef.current.scrollHeight, MAX_HEIGHT));
+        if (isOpen) {
+            setIsTransitioned(false);
+            if (contentRef.current) {
+                setHeight(contentRef.current.scrollHeight);
+            }
         } else {
-            setHeight(0);
+            setIsTransitioned(false);
+            if (contentRef.current) {
+                setHeight(contentRef.current.scrollHeight);
+                void contentRef.current.offsetHeight; // force reflow
+            }
+            const timer = setTimeout(() => {
+                setHeight(0);
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, [isOpen]);
+
+    const handleTransitionEnd = (e: React.TransitionEvent<HTMLDivElement>) => {
+        if (e.propertyName === 'height' && isOpen) {
+            setIsTransitioned(true);
+        }
+    };
 
     const dotColors = {
         green: '#22C55E',
@@ -143,19 +159,18 @@ function AccordionPanel({
 
             {/* Expandable content */}
             <div
+                onTransitionEnd={handleTransitionEnd}
                 style={{
-                    height: `${height}px`,
-                    overflow: 'hidden',
+                    height: isOpen ? (isTransitioned ? 'auto' : `${height}px`) : '0px',
+                    overflow: isOpen && isTransitioned ? 'visible' : 'hidden',
                     transition: 'height 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
             >
                 <div
                     ref={contentRef}
-                    className="px-3 pb-3 warmatrix-scrollbar"
+                    className="px-3 pb-3"
                     style={{ 
-                        borderTop: '1px solid rgba(31,111,235,0.12)',
-                        maxHeight: `${MAX_HEIGHT}px`,
-                        overflowY: 'auto'
+                        borderTop: '1px solid rgba(31,111,235,0.12)'
                     }}
                 >
                     <div className="pt-2.5">{children}</div>
@@ -203,11 +218,9 @@ function LastKnownCoordsPanel({ activeScenario }: { activeScenario: ActiveScenar
     const contentRef = useRef<HTMLDivElement>(null);
     const [height, setHeight] = useState(0);
 
-    const MAX_HEIGHT = 150;
-
     useEffect(() => {
         if (isExpanded && contentRef.current) {
-            setHeight(Math.min(contentRef.current.scrollHeight, MAX_HEIGHT));
+            setHeight(contentRef.current.scrollHeight);
         } else {
             setHeight(0);
         }
@@ -274,10 +287,8 @@ function LastKnownCoordsPanel({ activeScenario }: { activeScenario: ActiveScenar
 
             {/* Expandable body */}
             <div style={{ height: `${height}px`, overflow: 'hidden', transition: 'height 0.25s cubic-bezier(0.4,0,0.2,1)' }}>
-                <div ref={contentRef} className="px-3 py-2.5 warmatrix-scrollbar" style={{ 
-                    borderTop: '1px solid rgba(31,111,235,0.10)',
-                    maxHeight: `${MAX_HEIGHT}px`,
-                    overflowY: 'auto'
+                <div ref={contentRef} className="px-3 py-2.5" style={{ 
+                    borderTop: '1px solid rgba(31,111,235,0.10)'
                 }}>
                     {activeScenario && hasCoords ? (
                         <div className="flex flex-col gap-1.5">

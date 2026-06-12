@@ -42,6 +42,29 @@ import {
 type TerrainType = 'Highland' | 'Forest' | 'Urban' | 'Plains' | 'Desert' | 'Mountain' | 'Coastal' | 'Arctic';
 type WeatherType = 'Clear' | 'Partly Cloudy' | 'Storm' | 'Fog' | 'Heavy Rain' | 'Sandstorm';
 
+const getWeatherTemp = (w?: WeatherType) => {
+  switch (w) {
+    case 'Clear': return '24°C';
+    case 'Partly Cloudy': return '18°C';
+    case 'Storm': return '8°C';
+    case 'Fog': return '15°C';
+    case 'Heavy Rain': return '12°C';
+    case 'Sandstorm': return '34°C';
+    default: return '18°C';
+  }
+};
+
+const getWeatherVisibility = (w?: WeatherType) => {
+  switch (w) {
+    case 'Storm': return '2.1 KM';
+    case 'Fog': return '0.4 KM';
+    case 'Heavy Rain': return '3.5 KM';
+    case 'Sandstorm': return '1.2 KM';
+    default: return '8.5 KM';
+  }
+};
+
+
 interface Unit {
   id: string;
   type: 'FRIENDLY' | 'ENEMY' | 'OBJECTIVE';
@@ -954,7 +977,7 @@ export default function WarMatrixPage() {
           <button
             suppressHydrationWarning
             onClick={() => setIsDashboardOpen(true)}
-            className="w-full flex items-center justify-between p-3 rounded-sm group transition-all relative overflow-hidden"
+            className="w-full flex items-center justify-between p-3 rounded-sm group transition-all relative overflow-hidden shrink-0"
             style={{
               background: 'rgba(31,111,235,0.1)',
               border: '1px solid rgba(31,111,235,0.3)',
@@ -970,7 +993,7 @@ export default function WarMatrixPage() {
             <Maximize2 className="w-3 h-3 text-[#3A8DFF] opacity-50 group-hover:opacity-100 relative z-10" />
           </button>
 
-          <TacticalWidget title="Comm Status" icon={Radio}>
+          <TacticalWidget title="Comm Status" icon={Radio} className="shrink-0">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2 mb-1">
                 <div className={`w-1.5 h-1.5 rounded-full ${activeScenario ? 'bg-[#22C55E] animate-pulse' : 'bg-[#4B5563]'}`} />
@@ -982,14 +1005,59 @@ export default function WarMatrixPage() {
             </div>
           </TacticalWidget>
 
+          <TacticalWidget title="Terrain Status" icon={Map} className="shrink-0">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2 mb-1">
+                <div 
+                  className={`w-1.5 h-1.5 rounded-full ${activeScenario ? 'bg-[#22C55E] animate-pulse' : 'bg-[#4B5563]'}`} 
+                  style={activeScenario ? { boxShadow: '0 0 5px #22C55E80' } : undefined} 
+                />
+                <span className="text-[10px] font-mono text-[#E6EDF3] font-bold">
+                  {activeScenario ? activeScenario.terrainType.toUpperCase() : 'STANDBY'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-0.5 border-b border-[#1F6FEB]/05 last:border-0">
+                <span className="text-[9px] text-[#9CA3AF] uppercase font-bold tracking-tighter">Status</span>
+                <span className={`text-[10px] font-mono font-bold ${activeScenario ? 'text-[#F59E0B]' : 'text-[#4B5563]'}`}>
+                  {activeScenario ? 'OPERATIONAL' : 'OFFLINE'}
+                </span>
+              </div>
+            </div>
+          </TacticalWidget>
+
+          <TacticalWidget title="Weather Status" icon={CloudRain} className="shrink-0">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2 mb-1">
+                <div 
+                  className={`w-1.5 h-1.5 rounded-full ${activeScenario ? 'bg-[#3A8DFF] animate-pulse' : 'bg-[#4B5563]'}`} 
+                  style={activeScenario ? { boxShadow: '0 0 5px #3A8DFF80' } : undefined} 
+                />
+                <span className="text-[10px] font-mono text-[#E6EDF3] font-bold">
+                  {activeScenario ? (activeScenario.weather ?? 'Partly Cloudy').toUpperCase() : 'STANDBY'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-0.5 border-b border-[#1F6FEB]/05 last:border-0">
+                <span className="text-[9px] text-[#9CA3AF] uppercase font-bold tracking-tighter">Temperature</span>
+                <span className="text-[10px] font-mono text-[#E6EDF3]">
+                  {activeScenario ? getWeatherTemp(activeScenario.weather) : '— —'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-0.5 border-b border-[#1F6FEB]/05 last:border-0">
+                <span className="text-[9px] text-[#9CA3AF] uppercase font-bold tracking-tighter">Visibility</span>
+                <span className="text-[10px] font-mono text-[#E6EDF3]">
+                  {activeScenario ? getWeatherVisibility(activeScenario.weather) : '— —'}
+                </span>
+              </div>
+            </div>
+          </TacticalWidget>
 
           {/* Active Scenario — clickable briefing panel */}
-          <div className="flex flex-col min-h-0">
+          <div className="flex flex-col shrink-0 min-h-0">
             {activeScenario ? (
               <button
                 suppressHydrationWarning
                 onClick={() => setIsBriefingModalOpen(true)}
-                className="w-full text-left group flex flex-col"
+                className="w-full text-left group flex flex-col shrink-0"
                 style={{
                   background: 'rgba(8,14,28,0.85)',
                   border: '1px solid rgba(31,111,235,0.22)',
@@ -1023,7 +1091,7 @@ export default function WarMatrixPage() {
               </button>
             ) : (
               <div
-                className="w-full flex flex-col items-center justify-center p-4 text-center border border-[#1F6FEB]/10 rounded-sm bg-[#080E1C]/40"
+                className="w-full flex flex-col items-center justify-center p-4 text-center border border-[#1F6FEB]/10 rounded-sm bg-[#080E1C]/40 shrink-0"
               >
                 <div className="w-8 h-8 rounded-full border border-[#1F6FEB]/20 flex items-center justify-center mb-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#374151]" />
@@ -1034,7 +1102,7 @@ export default function WarMatrixPage() {
             )}
           </div>
 
-          <TacticalWidget title="Ally Damage Report" icon={Zap}>
+          <TacticalWidget title="Ally Damage Report" icon={Zap} className="shrink-0">
             <div className="flex flex-col gap-1">
               {[
                 { label: 'Units Lost', value: combatMetrics.allyUnitsLost.toString() },
@@ -1050,7 +1118,7 @@ export default function WarMatrixPage() {
             </div>
           </TacticalWidget>
 
-          <TacticalWidget title="Enemy Damage Report" icon={Activity}>
+          <TacticalWidget title="Enemy Damage Report" icon={Activity} className="shrink-0">
             <div className="flex flex-col gap-1">
               {[
                 { label: 'Enemy Units Destroyed', value: combatMetrics.enemyUnitsDestroyed.toString() },
