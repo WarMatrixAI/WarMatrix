@@ -5,6 +5,7 @@ import { Courier_Prime } from 'next/font/google';
 import { useRouter } from 'next/navigation';
 import { Cpu, Terminal, Settings2, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const courierNew = Courier_Prime({
   subsets: ['latin'],
@@ -17,9 +18,12 @@ interface HeaderProps {
   onOpenBuilder: () => void;
   role?: 'BLUE_TEAM' | 'RED_TEAM';
   onRoleSwitch?: (role: 'BLUE_TEAM' | 'RED_TEAM') => void;
+  modelInfo?: { service: string; model: string; model_loaded: boolean } | null;
+  geminiModel?: string;
+  onModelChange?: (model: string) => void;
 }
 
-export function Header({ turn, status, onOpenBuilder, role, onRoleSwitch }: HeaderProps) {
+export function Header({ turn, status, onOpenBuilder, role, onRoleSwitch, modelInfo, geminiModel, onModelChange }: HeaderProps) {
   const router = useRouter();
 
   const handleLogout = () => {
@@ -92,6 +96,30 @@ export function Header({ turn, status, onOpenBuilder, role, onRoleSwitch }: Head
 
       {/* RIGHT: System Indicators */}
       <div className="flex items-center gap-4 justify-self-end">
+        {modelInfo && modelInfo.service === 'gemini-api' && onModelChange && (
+          <div className="flex items-center gap-2 mr-2">
+            <span className="text-[8px] font-mono text-[#8B5CF6] uppercase tracking-wider">CORE:</span>
+            <Select value={geminiModel} onValueChange={onModelChange}>
+              <SelectTrigger className="h-7 w-[160px] bg-[#050810]/80 border border-[#8B5CF6]/30 hover:border-[#8B5CF6]/60 rounded-sm px-2 text-[9px] font-mono text-[#E6EDF3] focus:ring-0 focus:border-[#8B5CF6] transition-all">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-[#050810] border border-[#8B5CF6]/30 text-white font-mono">
+                <SelectItem value="gemini-3.5-flash">Gemini 3.5 Flash</SelectItem>
+                <SelectItem value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</SelectItem>
+                <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                <SelectItem value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</SelectItem>
+                <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        {modelInfo && modelInfo.service !== 'gemini-api' && (
+          <div className="flex items-center gap-1.5 mr-2" title={modelInfo.model}>
+            <span className="text-[8px] font-mono text-[#4D637F] uppercase tracking-wider">LOCAL:</span>
+            <span className="text-[9px] font-mono text-[#8B9EB7] max-w-[100px] truncate select-none border border-[#1F6FEB]/15 bg-[#050810]/40 rounded-sm px-1.5 py-0.5">{modelInfo.model}</span>
+          </div>
+        )}
+
         <div className="flex items-center gap-2 text-[#4B5563]">
           <Cpu className="w-3.5 h-3.5" />
           <span className="text-[9px] font-mono tracking-tighter uppercase">N_77_BETA</span>

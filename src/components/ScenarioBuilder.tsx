@@ -33,6 +33,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { GenerateScenarioInput, GenerateScenarioOutput } from '@/ai/flows/generate-scenario';
+import { GEMINI_MODEL_COOKIE, GEMINI_API_KEY_COOKIE_MAX_AGE_SECONDS } from '@/lib/gemini-auth';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -74,6 +75,9 @@ interface ScenarioBuilderProps {
   onOperationConfigured?: (name: string, terrain: TerrainType, weather: WeatherType) => void;
   initialMode?: EntryMode;
   isInline?: boolean;
+  modelInfo?: { service: string; model: string; model_loaded: boolean } | null;
+  geminiModel?: string;
+  onModelChange?: (model: string) => void;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -99,6 +103,59 @@ const WEATHER_TYPES: WeatherType[] = ['Clear', 'Partly Cloudy', 'Storm', 'Fog', 
 const AI_TERRAIN_TYPES: TerrainType[] = ['Highland', 'Forest', 'Urban', 'Plains', 'Desert'];
 const FORCE_BALANCES: ForceBalance[] = ['Balanced Forces', 'Friendly Advantage', 'Hostile Advantage'];
 const OBJECTIVE_TYPES: ObjectiveType[] = ['Capture Territory', 'Defend Position', 'Supply Route Control', 'Recon Operation'];
+
+function cleanErrorText(rawError: string | null): string {
+  if (!rawError) return '';
+  const jsonMatch = rawError.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.details) return parsed.details;
+      if (parsed.error) return parsed.error;
+    } catch {}
+  }
+  return rawError.replace(/^Local backend error \(\d+\):\s*/, '');
+}
+
+function isHighDemandError(errorText: string | null, isGemini: boolean): boolean {
+  if (!errorText) return false;
+  const cleaned = cleanErrorText(errorText).toLowerCase();
+  const rawLower = errorText.toLowerCase();
+  return (
+    isGemini && (
+      cleaned.includes('experiencing high demand') ||
+      cleaned.includes('high demand') ||
+      cleaned.includes('overloaded') ||
+      cleaned.includes('resource_exhausted') ||
+      cleaned.includes('resource exhausted') ||
+      cleaned.includes('rate limit') ||
+      cleaned.includes('quota') ||
+      cleaned.includes('limit') ||
+      rawLower.includes('503') ||
+      rawLower.includes('429')
+    )
+  );
+}
+
+function getReadableErrorMessage(errorText: string | null, isGemini: boolean): string {
+  if (!errorText) return 'An unknown error occurred during scenario generation.';
+  const cleaned = cleanErrorText(errorText);
+  const rawLower = errorText.toLowerCase();
+
+  if (rawLower.includes('gemini_key_required') || rawLower.includes('key_required') || rawLower.includes('api key must be entered')) {
+    return 'Gemini API key is missing or invalid. Please check your credentials and save a valid API key in the Uplink Portal.';
+  }
+
+  if (rawLower.includes('connection refused') || rawLower.includes('econnrefused') || rawLower.includes('failed to fetch') || rawLower.includes('offline') || rawLower.includes('ai_server_offline')) {
+    return 'Could not establish connection with the AI core. Ensure your local wargame server or Python backend is running on the correct port.';
+  }
+
+  if (isHighDemandError(errorText, isGemini)) {
+    return `AI Core capacity reached: "${cleaned}". The service is currently experiencing high demand or rate limits.`;
+  }
+
+  return cleaned || 'The AI strategizing sequence was interrupted by an unexpected processing error.';
+}
 
 const MISSION_CONTEXT_TEMPLATES = [
   'Forward elements have reported hostile incursion across the northern ridge. Command requires immediate assessment and counter-offensive positioning.',
@@ -141,10 +198,78 @@ type AIGenStatus = 'idle' | 'rolling' | 'generating' | 'done' | 'error';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function ScenarioBuilder({ units, onUpdateUnits, isOpen, onClose, onScenarioGenerated, onBriefingGenerated, onOperationConfigured, initialMode = null, isInline = false }: ScenarioBuilderProps) {
+export function ScenarioBuilder({
+  units,
+  onUpdateUnits,
+  isOpen,
+  onClose,
+  onScenarioGenerated,
+  onBriefingGenerated,
+  onOperationConfigured,
+  initialMode = null,
+  isInline = false,
+  modelInfo: propModelInfo,
+  geminiModel: propGeminiModel,
+  onModelChange: propOnModelChange,
+}: ScenarioBuilderProps) {
 
   // ── Entry mode gate ──────────────────────────────────────────────────────────
   const [entryMode, setEntryMode] = useState<EntryMode>(initialMode);
+
+  const [internalModelInfo, setInternalModelInfo] = useState<{
+    service: string;
+    model: string;
+    model_loaded: boolean;
+  } | null>(null);
+
+  const [internalGeminiModel, setInternalGeminiModel] = useState('gemini-3.5-flash');
+
+  const modelInfo = propModelInfo !== undefined ? propModelInfo : internalModelInfo;
+  const geminiModel = propGeminiModel !== undefined ? propGeminiModel : internalGeminiModel;
+  const setModelInfo = propModelInfo !== undefined ? () => {} : setInternalModelInfo;
+
+  React.useEffect(() => {
+    if (isOpen && propModelInfo === undefined) {
+      // Get model info from backend health check only if not provided by parent
+      fetch('/api/sitrep')
+        .then(r => r.json())
+        .then(data => {
+          if (data.ok) {
+            const info = {
+              service: data.service || 'local',
+              model: data.model || 'Local Model',
+              model_loaded: !!data.model_loaded,
+            };
+            setInternalModelInfo(info);
+            if (data.service === 'gemini-api' && data.model) {
+              setInternalGeminiModel(data.model);
+            }
+            pushLog('SYS', `Operational AI Core: ${info.service.toUpperCase()} // ${info.model}`);
+          } else {
+            setInternalModelInfo(null);
+            pushLog('ERR', 'AI Server status offline or unreachable.');
+          }
+        })
+        .catch(() => {
+          setInternalModelInfo(null);
+          pushLog('ERR', 'AI Server status offline or unreachable.');
+        });
+    } else if (isOpen && propModelInfo) {
+      pushLog('SYS', `Operational AI Core: ${propModelInfo.service.toUpperCase()} // ${propModelInfo.model}`);
+    }
+  }, [isOpen, propModelInfo]);
+
+  const handleModelChange = (val: string) => {
+    if (propOnModelChange) {
+      propOnModelChange(val);
+    } else {
+      setInternalGeminiModel(val);
+      setInternalModelInfo(prev => prev ? { ...prev, model: val } : null);
+      const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = `${GEMINI_MODEL_COOKIE}=${encodeURIComponent(val)}; Path=/; Max-Age=${GEMINI_API_KEY_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secureFlag}`;
+    }
+    pushLog('SYS', `Selected Gemini Model switched to: ${val}`);
+  };
 
   // ── Reset state on open ──────────────────────────────────────────────────────
   React.useEffect(() => {
@@ -183,6 +308,7 @@ export function ScenarioBuilder({ units, onUpdateUnits, isOpen, onClose, onScena
   const [aiResult, setAiResult] = useState<GenerateScenarioOutput | null>(null);
   const [aiTerrain, setAiTerrain] = useState<TerrainType>('Highland');
   const [aiError, setAiError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [rollStep, setRollStep] = useState(0);
   const [termLogs, setTermLogs] = useState<LogEntry[]>([]);
 
@@ -318,9 +444,18 @@ export function ScenarioBuilder({ units, onUpdateUnits, isOpen, onClose, onScena
       }
     } catch (err: any) {
       const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+      const isGemini = modelInfo?.service === 'gemini-api';
+      const cleanMsg = cleanErrorText(err?.message || 'Unknown error');
+      
       pushLog('ERR', `Generation failed after ${elapsed}s`);
-      pushLog('ERR', err?.message ?? 'Unknown error');
-      pushLog('INFO', 'Check if ai_server/backend_server.py is running on port 8000');
+      pushLog('ERR', cleanMsg);
+      
+      if (isHighDemandError(err?.message, isGemini)) {
+        pushLog('SYS', 'ADVISORY: Try selecting a different Gemini model in the header/panel.');
+      } else {
+        pushLog('INFO', 'Check if ai_server/backend_server.py is running on port 8000');
+      }
+      
       console.error('Scenario generation failed:', err);
       setAiError(err?.message || 'AI generation failed. Check your connection and try again.');
       setAiStatus('error');
@@ -860,6 +995,47 @@ export function ScenarioBuilder({ units, onUpdateUnits, isOpen, onClose, onScena
                         ))}
                       </div>
 
+                      {modelInfo ? (
+                        <div className="flex flex-col gap-1.5 w-full max-w-[240px] mt-2 mb-2">
+                          <label 
+                            className="text-[9px] font-mono uppercase tracking-wider text-center"
+                            style={{ color: modelInfo.service === 'gemini-api' ? '#A78BFA' : '#4D637F' }}
+                          >
+                            {modelInfo.service === 'gemini-api' ? 'Active Gemini Core' : 'Active Local LLM Core'}
+                          </label>
+                          {modelInfo.service === 'gemini-api' ? (
+                            <Select value={geminiModel} onValueChange={handleModelChange}>
+                              <SelectTrigger className="w-full h-9 bg-[#050810]/80 border border-[#8B5CF6]/30 rounded-sm px-3 text-[11px] font-mono text-[#E6EDF3] focus:ring-0 focus:border-[#8B5CF6] transition-all">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-[#050810] border border-[#8B5CF6]/30 text-white font-mono">
+                                <SelectItem value="gemini-3.5-flash">Gemini 3.5 Flash</SelectItem>
+                                <SelectItem value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</SelectItem>
+                                <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                                <SelectItem value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</SelectItem>
+                                <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <div 
+                              className="w-full bg-[#050810]/40 border border-[#1F6FEB]/15 rounded-sm py-2 px-3 text-[11px] font-mono text-[#8B9EB7] text-center select-none truncate"
+                              title={modelInfo.model}
+                            >
+                              {modelInfo.model}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-1.5 w-full max-w-[240px] mt-2 mb-2">
+                          <label className="text-[9px] font-mono text-[#4D637F] uppercase tracking-wider text-center">
+                            Core Status
+                          </label>
+                          <div className="w-full bg-[#050810]/40 border border-[#1F6FEB]/15 rounded-sm py-2 px-3 text-[11px] font-mono text-[#8B9EB7] text-center select-none animate-pulse">
+                            Awaiting AI Core response...
+                          </div>
+                        </div>
+                      )}
+
                       <button
                         onClick={handleRandomGenerate}
                         className="mt-2 flex items-center gap-3 px-8 py-3 rounded-sm border font-bold text-[10px] uppercase tracking-widest transition-all"
@@ -972,21 +1148,62 @@ export function ScenarioBuilder({ units, onUpdateUnits, isOpen, onClose, onScena
 
                 {/* ── ERROR STATE ── */}
                 {aiStatus === 'error' && (
-                  <div className="flex-1 flex flex-col items-center justify-center gap-5 p-8">
+                  <div className="flex-1 flex flex-col items-center justify-center gap-5 p-8 overflow-y-auto">
                     <div
-                      className="flex flex-col items-center gap-4 p-6 rounded-sm border max-w-sm w-full text-center"
+                      className="flex flex-col items-center gap-4 p-6 rounded-sm border max-w-md w-full text-center"
                       style={{ background: 'rgba(25,5,5,0.70)', borderColor: 'rgba(239,68,68,0.30)' }}
                     >
-                      <AlertTriangle className="w-8 h-8 text-[#EF4444]" />
-                      <div>
-                        <p className="text-[10px] font-mono text-[#EF4444] uppercase tracking-wider mb-1">Generation Failed</p>
-                        <p className="text-[8px] font-mono text-[#6B7280] leading-relaxed">{aiError}</p>
+                      <AlertTriangle className="w-8 h-8 text-[#EF4444] shrink-0" />
+                      
+                      <div className="w-full">
+                        <p className="text-[10px] font-mono text-[#EF4444] uppercase tracking-wider mb-2 font-bold">
+                          Scenario Generation Uplink Failure
+                        </p>
+                        
+                        <p className="text-[11px] font-mono text-[#E6EDF3] leading-relaxed mb-4">
+                          {getReadableErrorMessage(aiError, modelInfo?.service === 'gemini-api')}
+                        </p>
+
+                        {aiError && (
+                          <div className="w-full text-left mb-4">
+                            <span className="text-[8px] font-mono text-[#4B6A8A] uppercase tracking-wider block mb-1">
+                              Raw Telemetry Log
+                            </span>
+                            <div className="relative">
+                              <pre className="w-full bg-[#050810]/95 border border-[#EF4444]/20 rounded-sm p-3 text-[9px] font-mono text-[#FCA5A5] whitespace-pre-wrap max-h-32 overflow-y-auto break-all scrollbar-thin">
+                                {aiError}
+                              </pre>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(aiError);
+                                  setCopied(true);
+                                  setTimeout(() => setCopied(false), 2000);
+                                }}
+                                className="absolute top-1.5 right-1.5 px-2 py-0.5 text-[7px] font-mono border border-[#FCA5A5]/30 text-[#FCA5A5]/70 hover:text-white hover:border-[#EF4444] rounded-sm transition-all bg-[#050810]"
+                              >
+                                {copied ? 'COPIED' : 'COPY'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {isHighDemandError(aiError, modelInfo?.service === 'gemini-api') && (
+                          <div className="w-full border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 p-3 rounded-sm text-left mb-4">
+                            <span className="text-[9px] font-mono text-[#A78BFA] uppercase tracking-wider block font-bold mb-1">
+                              Tactical Advisory
+                            </span>
+                            <span className="text-[9px] font-mono text-[#C4B5FD] leading-relaxed block">
+                              The selected model is experiencing high demand. Please try selecting a different Gemini model from the dropdown (e.g. Gemini 3.1 Flash Lite or 2.5 Flash) and try again.
+                            </span>
+                          </div>
+                        )}
                       </div>
+
                       <button
                         onClick={() => { setAiStatus('idle'); setAiError(null); }}
                         className="px-6 py-2 text-[9px] font-bold uppercase tracking-widest rounded-sm border border-[#EF4444]/30 text-[#EF4444]/70 hover:border-[#EF4444]/60 hover:text-[#EF4444] transition-all"
                       >
-                        Try Again
+                        Dismiss
                       </button>
                     </div>
                   </div>
@@ -1112,6 +1329,8 @@ export function ScenarioBuilder({ units, onUpdateUnits, isOpen, onClose, onScena
                     logs={termLogs}
                     isRunning={aiStatus === 'rolling' || aiStatus === 'generating'}
                     title="SCENARIO_GEN_UPLINK"
+                    modelName={modelInfo?.model}
+                    isGemini={modelInfo?.service === 'gemini-api'}
                   />
                 </div>
               </div>

@@ -1,6 +1,6 @@
 import { cookies, headers } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { GEMINI_API_KEY_COOKIE } from '@/lib/gemini-auth';
+import { GEMINI_API_KEY_COOKIE, GEMINI_MODEL_COOKIE } from '@/lib/gemini-auth';
 
 const AI_SERVER_BASE = process.env.AI_SERVER_BASE_URL ?? 'http://127.0.0.1:8000';
 const SIM_SERVER_BASE = process.env.SIM_SERVER_BASE_URL ?? 'http://127.0.0.1:8001';
@@ -64,7 +64,8 @@ function clamp(val: number | undefined, min: number, max: number, def: number): 
 
 async function getGeminiApiKey(): Promise<string> {
     const cookieStore = await cookies();
-    return cookieStore.get(GEMINI_API_KEY_COOKIE)?.value?.trim() ?? '';
+    const cookieKey = cookieStore.get(GEMINI_API_KEY_COOKIE)?.value?.trim() ?? '';
+    return cookieKey || (process.env.GEMINI_API_KEY?.trim() ?? '');
 }
 
 async function requireGeminiApiKey() {
@@ -99,15 +100,39 @@ export async function GET() {
         return keyError;
     }
 
+    const geminiApiKey = await getGeminiApiKey();
+    const cookieStore = await cookies();
+    if (geminiApiKey) {
+        const selectedModel = cookieStore.get(GEMINI_MODEL_COOKIE)?.value?.trim();
+        const modelName = selectedModel || (process.env.GEMINI_MODEL ?? 'gemini-3.5-flash');
+        return NextResponse.json({
+            ok: true,
+            service: 'gemini-api',
+            model_loaded: true,
+            device: 'cloud',
+            model: modelName,
+        });
+    }
+
     try {
         const res = await fetch(`${AI_SERVER_BASE}/health`, {
             signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
         });
         const data = await res.json();
-        return NextResponse.json(data, { status: res.status });
+        let model = 'Local Model';
+        if (data.use_lm_studio) {
+            model = 'LM Studio';
+        } else if (data.model_path) {
+            const parts = data.model_path.split(/[\\/]/);
+            model = parts[parts.length - 1] || 'Local Model';
+        }
+        return NextResponse.json({
+            ...data,
+            model,
+        }, { status: res.status });
     } catch {
         return NextResponse.json(
-            { ok: false, error: 'ai_server_offline', model_loaded: false },
+            { ok: false, error: 'ai_server_offline', model_loaded: false, model: 'Offline' },
             { status: 503 }
         );
     }
@@ -255,7 +280,108 @@ export async function POST(req: Request) {
         top_p: clamp(raw.top_p, 0.1, 1.0, 0.9),
     };
 
-    // 5. Forward to the Python AI server
+    // 5. Forward to Gemini API directly or the Python AI server
+    if (geminiApiKey) {
+        try {
+            const systemInstruction = 
+                "You are the WarMatrix Tactical AI Strategist. The wargame simulation has transitioned to a continuous, real-world coordinate system " +
+                "with float values for coordinates and multi-layered semantic terrain (Urban cover, Plains open ground, Mountain elevation, " +
+                "and rapid-transit Roads). The system operates on a time-stepped tick loop incorporating stateful units (Infantry, Armor, Recon, " +
+                "Artillery, Logistics, Command) that transition through Active, Damaged, and Destroyed statuses. Weather conditions " +
+                "(Fog, Storm, Sandstorm) directly reduce vision, movement, and accuracy. When providing briefings, sitreps, or explaining " +
+                "decisions, always reason and speak in terms of these continuous spatial dynamics, cover values, weather impact, and " +
+                "detailed stateful entity attributes.";
+
+            const userPrompt = 
+                "Below is an instruction that describes a task, paired with an input that provides further context. " +
+                "Write a response that appropriately completes the request.\n" +
+                "Return only the final SITREP output. Do not include reasoning, analysis notes, or <think> blocks.\n\n" +
+                `### Instruction:\n${payload.instruction}\n\n` +
+                `### Input:\n${payload.battlefield_data}\n\n` +
+                "### Response:\n";
+
+            const isJsonRequested = payload.instruction.toLowerCase().includes("json");
+
+            const geminiPayload = {
+                contents: [
+                    {
+                        parts: [
+                            { text: userPrompt }
+                        ]
+                    }
+                ],
+                systemInstruction: {
+                    parts: [
+                        { text: systemInstruction }
+                    ]
+                },
+                generationConfig: {
+                    temperature: payload.temperature,
+                    maxOutputTokens: payload.max_new_tokens,
+                    topP: payload.top_p,
+                    ...(isJsonRequested ? { responseMimeType: "application/json" } : {})
+                }
+            };
+
+            const cookieStore = await cookies();
+            const selectedModel = cookieStore.get(GEMINI_MODEL_COOKIE)?.value?.trim();
+            const modelName = selectedModel || (process.env.GEMINI_MODEL ?? 'gemini-3.5-flash');
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`;
+
+            const res = await fetch(geminiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(geminiPayload),
+                signal: AbortSignal.timeout(INFERENCE_TIMEOUT_MS),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                return NextResponse.json(
+                    {
+                        error: 'gemini_api_error',
+                        details: data?.error?.message ?? 'Direct Gemini API request failed.',
+                    },
+                    { status: res.status }
+                );
+            }
+
+            const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+            
+            return NextResponse.json({
+                ok: true,
+                response: responseText,
+                ai_narrative_output: responseText,
+                source: 'gemini_api'
+            });
+        } catch (err: unknown) {
+            const isTimeout =
+                (err instanceof DOMException && err.name === 'TimeoutError') ||
+                (err instanceof Error && err.name === 'TimeoutError');
+
+            if (isTimeout) {
+                return NextResponse.json(
+                    {
+                        error: 'gemini_api_timeout',
+                        details: `Gemini API did not respond within ${INFERENCE_TIMEOUT_MS / 1000}s.`,
+                    },
+                    { status: 504 }
+                );
+            }
+
+            return NextResponse.json(
+                {
+                    error: 'gemini_api_failed',
+                    details: err instanceof Error ? err.message : 'Unknown error during Gemini API fetch.',
+                },
+                { status: 500 }
+            );
+        }
+    }
+
     try {
         const res = await fetch(`${AI_SERVER_BASE}/api/sitrep`, {
             method: 'POST',
@@ -270,7 +396,6 @@ export async function POST(req: Request) {
         const data = await res.json();
 
         if (!res.ok) {
-            // ... (error handling remains the same)
             return NextResponse.json(
                 {
                     error: 'ai_inference_error',

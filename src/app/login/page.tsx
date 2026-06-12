@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Shield, Lock, Terminal, Fingerprint, ChevronRight, Activity, Cpu, Globe, Wifi, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { GEMINI_API_KEY_COOKIE, GEMINI_API_KEY_COOKIE_MAX_AGE_SECONDS } from "@/lib/gemini-auth";
+import { GEMINI_API_KEY_COOKIE, GEMINI_MODEL_COOKIE, GEMINI_API_KEY_COOKIE_MAX_AGE_SECONDS } from "@/lib/gemini-auth";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // --- Sub-Components ---
 
@@ -157,6 +158,7 @@ export default function LoginPage() {
   const [commanderId, setCommanderId] = useState("");
   const [authKey, setAuthKey] = useState("");
   const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [geminiModel, setGeminiModel] = useState("gemini-3.5-flash");
   const [isVercel, setIsVercel] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState<"IDLE" | "UPLINKING" | "DECRYPTING_KEY" | "SYNCING_NODES" | "SCANNING" | "VERIFYING" | "SUCCESS">("IDLE");
@@ -168,12 +170,19 @@ export default function LoginPage() {
     if (typeof window !== "undefined") {
       setIsVercel(window.location.hostname.endsWith(".vercel.app"));
       
-      // Pre-fill existing API key if found in cookies
-      const match = document.cookie
+      // Pre-fill existing API key & model if found in cookies
+      const matchKey = document.cookie
         .split("; ")
         .find((entry) => entry.startsWith(`${GEMINI_API_KEY_COOKIE}=`));
-      if (match) {
-        setGeminiApiKey(decodeURIComponent(match.split("=")[1] ?? ""));
+      if (matchKey) {
+        setGeminiApiKey(decodeURIComponent(matchKey.split("=")[1] ?? ""));
+      }
+
+      const matchModel = document.cookie
+        .split("; ")
+        .find((entry) => entry.startsWith(`${GEMINI_MODEL_COOKIE}=`));
+      if (matchModel) {
+        setGeminiModel(decodeURIComponent(matchModel.split("=")[1] ?? ""));
       }
     }
   }, []);
@@ -246,13 +255,15 @@ export default function LoginPage() {
                       localStorage.setItem("warmatrix_auth", "true");
                       localStorage.setItem("warmatrix_auth_expires", (Date.now() + 1000 * 60 * 60 * 24).toString()); // Expires in 24 hours
                       
-                      // Save Gemini API key to cookie
+                      // Save Gemini API key & model to cookie
                       const secureFlag = window.location.protocol === "https:" ? "; Secure" : "";
                       if (trimmedKey) {
                         document.cookie = `${GEMINI_API_KEY_COOKIE}=${encodeURIComponent(trimmedKey)}; Path=/; Max-Age=${GEMINI_API_KEY_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secureFlag}`;
+                        document.cookie = `${GEMINI_MODEL_COOKIE}=${encodeURIComponent(geminiModel)}; Path=/; Max-Age=${GEMINI_API_KEY_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secureFlag}`;
                       } else {
                         // Clear cookie if left empty
                         document.cookie = `${GEMINI_API_KEY_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+                        document.cookie = `${GEMINI_MODEL_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
                       }
 
                       setTimeout(() => {
@@ -372,6 +383,24 @@ export default function LoginPage() {
                     className="w-full bg-[#050810] border border-[#1F6FEB]/30 rounded-sm py-3 pl-10 pr-4 text-[13px] font-mono text-[#E6EDF3] placeholder:text-[#273444] focus:outline-none focus:border-[#1F6FEB] transition-all"
                   />
                 </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-mono text-[#4B6A8A] uppercase tracking-wider pl-1">
+                  Gemini Model
+                </label>
+                <Select value={geminiModel} onValueChange={(v) => setGeminiModel(v)}>
+                  <SelectTrigger className="w-full h-12 bg-[#050810] border border-[#1F6FEB]/30 rounded-sm px-3 text-[13px] font-mono text-[#E6EDF3] focus:ring-0 focus:border-[#1F6FEB] transition-all">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#050810] border border-[#1F6FEB]/30 text-white font-mono">
+                    <SelectItem value="gemini-3.5-flash">Gemini 3.5 Flash (Default)</SelectItem>
+                    <SelectItem value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</SelectItem>
+                    <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                    <SelectItem value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</SelectItem>
+                    <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {error && (

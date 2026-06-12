@@ -113,49 +113,49 @@ UNIT_TEMPLATES = {
         "max_hp": 100.0,
         "attack": 25.0,
         "defense": 15.0,
-        "range": 2.0,
-        "mobility": 2.0,
-        "detection_range": 3.0,
+        "range": 7.3,
+        "mobility": 7.3,
+        "detection_range": 11.0,
     },
     "Armor": {
         "max_hp": 150.0,
         "attack": 45.0,
         "defense": 30.0,
-        "range": 3.0,
-        "mobility": 4.0,
-        "detection_range": 4.0,
+        "range": 11.0,
+        "mobility": 14.7,
+        "detection_range": 14.7,
     },
     "Recon": {
         "max_hp": 80.0,
         "attack": 15.0,
         "defense": 10.0,
-        "range": 2.5,
-        "mobility": 5.0,
-        "detection_range": 6.0,
+        "range": 9.2,
+        "mobility": 18.3,
+        "detection_range": 22.0,
     },
     "Artillery": {
         "max_hp": 70.0,
         "attack": 50.0,
         "defense": 5.0,
-        "range": 7.0,
-        "mobility": 1.5,
-        "detection_range": 3.0,
+        "range": 25.7,
+        "mobility": 5.5,
+        "detection_range": 11.0,
     },
     "Logistics": {
         "max_hp": 90.0,
         "attack": 10.0,
         "defense": 10.0,
-        "range": 1.5,
-        "mobility": 3.0,
-        "detection_range": 3.0,
+        "range": 5.5,
+        "mobility": 11.0,
+        "detection_range": 11.0,
     },
     "Command Unit": {
         "max_hp": 120.0,
         "attack": 20.0,
         "defense": 20.0,
-        "range": 2.0,
-        "mobility": 3.5,
-        "detection_range": 5.0,
+        "range": 7.3,
+        "mobility": 12.8,
+        "detection_range": 18.3,
     }
 }
 
@@ -427,8 +427,8 @@ def simulate_spatial_tick(
 
     # 5. Resolve Objective Progress Captures
     for obj in s.objectives:
-        # Get units within capture range (distance <= 1.0)
-        near_units = [u for u in s.units if u.alive and math.hypot(u.x - obj.x, u.y - obj.y) <= 1.2]
+        # Get units within capture range (distance <= 4.4)
+        near_units = [u for u in s.units if u.alive and math.hypot(u.x - obj.x, u.y - obj.y) <= 4.4]
         friendly_near = [u for u in near_units if u.faction == "FRIENDLY"]
         enemy_near = [u for u in near_units if u.faction == "ENEMY"]
 

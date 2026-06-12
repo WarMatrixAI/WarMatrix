@@ -13,8 +13,8 @@ from engine.transition import simulate_spatial_tick, get_unit_template
 def test_procedural_terrain():
     print("Running test_procedural_terrain...")
     
-    # Test Road Overlay at y = 4.0
-    cell_road = get_terrain_properties(5.0, 4.0, "Plains")
+    # Test Road Overlay at y = 14.0
+    cell_road = get_terrain_properties(5.0, 14.0, "Plains")
     assert cell_road.terrain_type == "road", f"Expected road, got {cell_road.terrain_type}"
     assert cell_road.movement_cost == 0.5, "Expected road movement cost of 0.5"
     assert cell_road.cover_value == 0.0, "Expected road cover value of 0.0"
@@ -25,8 +25,8 @@ def test_procedural_terrain():
     assert cell_plains.movement_cost == 1.0
     
     # Test Mountain environment with elevation peaks
-    peaks = [{"cx": 4.0, "cy": 3.0, "h": 200.0, "r2": 9.0}]
-    cell_mountain = get_terrain_properties(4.0, 3.0, "Mountain", map_peaks=peaks)
+    peaks = [{"cx": 20.0, "cy": 10.0, "h": 200.0, "r2": 100.0}]
+    cell_mountain = get_terrain_properties(20.0, 10.0, "Mountain", map_peaks=peaks)
     assert cell_mountain.terrain_type == "mountain"
     assert cell_mountain.elevation >= 200.0
     assert cell_mountain.movement_cost == 2.0
@@ -34,13 +34,12 @@ def test_procedural_terrain():
     
     # Test Forest environment
     cell_forest = get_terrain_properties(1.0, 1.0, "Forest")
-    # alternating forest checks in cell-based check: (1*3 + 1*7) % 5 = 10 % 5 = 0 < 3 -> should be forest
     assert cell_forest.terrain_type in ("forest", "plains")
     
     # Test Coastal water boundaries
     cell_coastal_land = get_terrain_properties(3.0, 2.0, "Coastal")
     assert cell_coastal_land.terrain_type == "plains"
-    cell_coastal_water = get_terrain_properties(10.0, 2.0, "Coastal")
+    cell_coastal_water = get_terrain_properties(35.0, 2.0, "Coastal")
     assert cell_coastal_water.terrain_type == "water"
     assert cell_coastal_water.movement_cost == 999.0  # blocked
     
@@ -64,19 +63,19 @@ def test_continuous_movement():
     
     state = BattlefieldState(
         turn=1,
-        width=12,
-        height=8,
+        width=44,
+        height=28,
         weather="Clear",
         units=[friendly],
         objectives=[],
         ended=False
     )
     
-    # Commander moves the Infantry unit to x=5.0, y=1.0 (eastward)
+    # Commander moves the Infantry unit to x=10.0, y=1.0 (eastward)
     command = {
         "action_type": "MOVE",
         "unit_id": "unit-001",
-        "target": {"x": 5.0, "y": 1.0}
+        "target": {"x": 10.0, "y": 1.0}
     }
     
     updated_state, movements, combat_results, casualties = simulate_spatial_tick(state, command)
@@ -87,9 +86,9 @@ def test_continuous_movement():
     assert moved_unit.x > 1.0, f"Expected unit to move east, but x is {moved_unit.x}"
     assert moved_unit.y == 1.0, f"Expected y to stay 1.0, got {moved_unit.y}"
     
-    # Base Infantry mobility is 2.0; on Plains movement cost is 1.0, so speed = 2.0 grid units.
-    # The step distance should be exactly 2.0, placing the unit at x = 3.0.
-    assert math.isclose(moved_unit.x, 3.0, abs_tol=0.01), f"Expected x close to 3.0, got {moved_unit.x}"
+    # Base Infantry mobility is 7.3; on Plains movement cost is 1.0, so speed = 7.3 grid units.
+    # The step distance should be exactly 7.3, placing the unit at x = 8.3.
+    assert math.isclose(moved_unit.x, 8.3, abs_tol=0.01), f"Expected x close to 8.3, got {moved_unit.x}"
     
     print(" - test_continuous_movement PASSED!")
 
@@ -110,15 +109,15 @@ def test_weather_and_damage_movement_modifiers():
     )
     state_storm = BattlefieldState(
         turn=1,
-        width=12,
-        height=8,
+        width=44,
+        height=28,
         weather="Storm",
         units=[friendly_storm]
     )
-    command = {"action_type": "MOVE", "unit_id": "unit-storm", "target": {"x": 5.0, "y": 1.0}}
+    command = {"action_type": "MOVE", "unit_id": "unit-storm", "target": {"x": 10.0, "y": 1.0}}
     res_storm, _, _, _ = simulate_spatial_tick(state_storm, command)
-    # Speed should be base speed (2.0) * storm modifier (0.7) = 1.4 grid units
-    assert math.isclose(res_storm.units[0].x, 2.4, abs_tol=0.02), f"Expected x=2.4 under Storm, got {res_storm.units[0].x}"
+    # Speed should be base speed (7.3) * storm modifier (0.7) = 5.11 grid units
+    assert math.isclose(res_storm.units[0].x, 6.11, abs_tol=0.02), f"Expected x=6.11 under Storm, got {res_storm.units[0].x}"
 
     # 2. Damaged state speed penalty check
     friendly_damaged = BattlefieldUnit(
@@ -133,15 +132,15 @@ def test_weather_and_damage_movement_modifiers():
     )
     state_damaged = BattlefieldState(
         turn=1,
-        width=12,
-        height=8,
+        width=44,
+        height=28,
         weather="Clear",
         units=[friendly_damaged]
     )
-    command = {"action_type": "MOVE", "unit_id": "unit-damaged", "target": {"x": 5.0, "y": 1.0}}
+    command = {"action_type": "MOVE", "unit_id": "unit-damaged", "target": {"x": 10.0, "y": 1.0}}
     res_damaged, _, _, _ = simulate_spatial_tick(state_damaged, command)
-    # Speed should be base speed (2.0) * damaged modifier (0.7) = 1.4 grid units
-    assert math.isclose(res_damaged.units[0].x, 2.4, abs_tol=0.02), f"Expected x=2.4 under Damaged state, got {res_damaged.units[0].x}"
+    # Speed should be base speed (7.3) * damaged modifier (0.7) = 5.11 grid units
+    assert math.isclose(res_damaged.units[0].x, 6.11, abs_tol=0.02), f"Expected x=6.11 under Damaged state, got {res_damaged.units[0].x}"
 
     print(" - test_weather_and_damage_movement_modifiers PASSED!")
 
@@ -150,7 +149,7 @@ def test_probabilistic_combat():
     print("Running test_probabilistic_combat...")
     
     # Place friendly Armor and hostile Recon near each other
-    # Armor attack is high, range is 3.0.
+    # Armor attack is high, range is 11.0.
     friendly = BattlefieldUnit(
         id="friendly-armor",
         faction="FRIENDLY",
@@ -164,7 +163,7 @@ def test_probabilistic_combat():
     hostile = BattlefieldUnit(
         id="hostile-recon",
         faction="ENEMY",
-        x=2.0,  # 1.0 grid distance, well within vision and range
+        x=4.0,  # 3.0 grid distance, well within vision and range
         y=1.0,
         label="Hostile Recon",
         assetClass="Recon",
@@ -174,8 +173,8 @@ def test_probabilistic_combat():
     
     state = BattlefieldState(
         turn=1,
-        width=12,
-        height=8,
+        width=44,
+        height=28,
         weather="Clear",
         units=[friendly, hostile]
     )
@@ -212,11 +211,11 @@ def test_probabilistic_combat():
 def test_objective_capture():
     print("Running test_objective_capture...")
     
-    # Place objective at x=2.0, y=2.0
+    # Place objective at x=22.0, y=20.0
     objective = BattlefieldObjective(
         id="obj-alpha",
-        x=2.0,
-        y=2.0,
+        x=22.0,
+        y=20.0,
         label="Alpha Sector Base",
         controller="NEUTRAL",
         progress_friendly=0.0,
@@ -227,8 +226,8 @@ def test_objective_capture():
     friendly = BattlefieldUnit(
         id="friendly-infantry",
         faction="FRIENDLY",
-        x=2.0,
-        y=2.0,
+        x=22.0,
+        y=20.0,
         label="Friendly Infantry",
         assetClass="Infantry",
         hp=100.0,
@@ -237,8 +236,8 @@ def test_objective_capture():
     
     state = BattlefieldState(
         turn=1,
-        width=12,
-        height=8,
+        width=44,
+        height=28,
         weather="Clear",
         units=[friendly],
         objectives=[objective]
