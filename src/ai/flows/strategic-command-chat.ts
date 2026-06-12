@@ -6,7 +6,7 @@ const apiBaseUrl = isVercel
     ? (process.env.VERCEL_ENV === 'production'
         ? 'https://war-matrix.vercel.app/api' // Hardcode your production domain here
         : (process.env.BACKEND_URL ? `${process.env.BACKEND_URL}/api` : '/api'))
-    : 'http://localhost:8000/api';
+    : (typeof window !== 'undefined' ? '/api' : 'http://localhost:8000/api');
 // ─── Input / Output Schemas ───────────────────────────────────────────────────
 
 const StrategicChatInputSchema = z.object({

@@ -159,8 +159,8 @@ function inferAssetClass(
 }
 
 function mapBackendToDisplayUnits(state: BattlefieldState, metadata: UnitMetadata[] = []): Unit[] {
-  const scaleX = (x: number) => Math.max(1, Math.min(44, Math.round((x / 12) * 44)));
-  const scaleY = (y: number) => Math.max(1, Math.min(28, Math.round((y / 8) * 28)));
+  const scaleX = (x: number) => Math.max(1, Math.min(44, Math.round(x)));
+  const scaleY = (y: number) => Math.max(1, Math.min(28, Math.round(y)));
 
   const metadataById = new globalThis.Map(metadata.filter((m) => m.id).map((m) => [m.id as string, m]));
   const metadataByLabel = new globalThis.Map(metadata.map((m) => [m.label.trim().toLowerCase(), m]));
@@ -227,12 +227,10 @@ function buildStructuredCommand(rawInput: string, state: BattlefieldState): Stru
     friendlyAlive[0];
 
   const toSimX = (x: number) => {
-    if (x <= 12) return Math.max(1, Math.min(12, x));
-    return Math.max(1, Math.min(12, Math.round((x / 44) * 12)));
+    return Math.max(1, Math.min(44, Math.round(x)));
   };
   const toSimY = (y: number) => {
-    if (y <= 8) return Math.max(1, Math.min(8, y));
-    return Math.max(1, Math.min(8, Math.round((y / 28) * 8)));
+    return Math.max(1, Math.min(28, Math.round(y)));
   };
 
   const coordMatch = lower.match(/\[(\d{1,2})\s*,\s*(\d{1,2})\]|x\s*[:=]?\s*(\d{1,2})\D+y\s*[:=]?\s*(\d{1,2})/i);

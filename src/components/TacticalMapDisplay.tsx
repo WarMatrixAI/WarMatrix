@@ -489,12 +489,10 @@ export function TacticalMapDisplay({
     });
 
     const toDisplayX = (x: number) => {
-        const raw = x <= 12 ? Math.round((x / 12) * COLS) : x;
-        return Math.max(1, Math.min(COLS, raw));
+        return Math.max(1, Math.min(COLS, Math.round(x)));
     };
     const toDisplayY = (y: number) => {
-        const raw = y <= 8 ? Math.round((y / 8) * ROWS) : y;
-        return Math.max(1, Math.min(ROWS, raw));
+        return Math.max(1, Math.min(ROWS, Math.round(y)));
     };
 
     const movementVectors = useMemo(() => {

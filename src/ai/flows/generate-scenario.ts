@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { headers, cookies } from 'next/headers';
+import { GEMINI_API_KEY_COOKIE } from '@/lib/gemini-auth';
 import {
     TacticalTerrainMapData,
     TacticalTeam,
@@ -88,6 +90,32 @@ export type GenerateScenarioOutput = z.infer<typeof GenerateScenarioOutputSchema
 export async function generateScenario(
     input: GenerateScenarioInput
 ): Promise<GenerateScenarioOutput> {
+    let finalApiBaseUrl = apiBaseUrl;
+    if (!isVercel) {
+        let hasGeminiKey = false;
+        try {
+            const cookieStore = await cookies();
+            const cookieKey = cookieStore.get(GEMINI_API_KEY_COOKIE)?.value?.trim();
+            hasGeminiKey = !!cookieKey || !!process.env.GEMINI_API_KEY?.trim();
+        } catch {
+            hasGeminiKey = !!process.env.GEMINI_API_KEY?.trim();
+        }
+
+        if (hasGeminiKey) {
+            try {
+                const headersList = await headers();
+                const host = headersList.get('host');
+                if (host) {
+                    const protocol = headersList.get('x-forwarded-proto') || 'http';
+                    finalApiBaseUrl = `${protocol}://${host}/api`;
+                } else {
+                    finalApiBaseUrl = 'http://localhost:3000/api';
+                }
+            } catch {
+                finalApiBaseUrl = 'http://localhost:3000/api';
+            }
+        }
+    }
 
     const toTerrainCell = (raw: unknown): TerrainCellType => {
         const v = String(raw ?? '').toLowerCase().trim();
@@ -323,11 +351,15 @@ OBJS: ${input.objectiveType}
 
 GENERATE RAW JSON SECURE DICTIONARY:`;
 
-    const res = await fetch(`${apiBaseUrl}/sitrep`, {
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.toString();
+
+    const res = await fetch(`${finalApiBaseUrl}/sitrep`, {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json',
             'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '',
+            ...(cookieHeader ? { 'Cookie': cookieHeader } : {}),
         },
         body: JSON.stringify({
             instruction,

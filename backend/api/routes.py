@@ -164,8 +164,8 @@ def initialize_scenario(payload: SpatialInitializeRequest) -> Dict[str, Any]:
     # Construct and return the initial wargame state
     initial_state = BattlefieldState(
         turn=1,
-        width=12,
-        height=8,
+        width=44,
+        height=28,
         weather=weather,
         units=battlefield_units,
         objectives=battlefield_objectives,
@@ -188,7 +188,7 @@ _SCENARIO_SYSTEM_PROMPT = (
     "  mapPeaks      : array of {cx, cy, h, r2} elevation peak objects (0-4 items)\n"
     "  units         : array of unit objects, each with keys:\n"
     "                    id (string), label (string), assetClass (Infantry|Armor|Recon|Artillery|Logistics|Command),\n"
-    "                    allianceRole (FRIENDLY|ENEMY), x (float 0-11), y (float 0-7)\n"
+    "                    allianceRole (FRIENDLY|ENEMY), x (float 1-44), y (float 1-28)\n"
     "  objectives    : array of objective objects, each with keys:\n"
     "                    id (string), label (string), x (float), y (float), controller (NEUTRAL|FRIENDLY|ENEMY)\n"
     "Output ONLY valid JSON with no markdown fences, no comments, and no extra text."
@@ -216,8 +216,8 @@ def _procedural_scenario_fallback(
             "label": f"Friendly {asset_classes[i % len(asset_classes)]} {i+1}",
             "assetClass": asset_classes[i % len(asset_classes)],
             "allianceRole": "FRIENDLY",
-            "x": round(rng.uniform(0.5, 3.5), 1),
-            "y": round(rng.uniform(0.5, 6.5), 1),
+            "x": round(rng.uniform(2.0, 14.0), 1),
+            "y": round(rng.uniform(2.0, 26.0), 1),
         })
     for i in range(n_enemy):
         units.append({
@@ -225,19 +225,19 @@ def _procedural_scenario_fallback(
             "label": f"Enemy {asset_classes[i % len(asset_classes)]} {i+1}",
             "assetClass": asset_classes[i % len(asset_classes)],
             "allianceRole": "ENEMY",
-            "x": round(rng.uniform(8.0, 11.5), 1),
-            "y": round(rng.uniform(0.5, 6.5), 1),
+            "x": round(rng.uniform(30.0, 42.0), 1),
+            "y": round(rng.uniform(2.0, 26.0), 1),
         })
 
     objectives = [
-        {"id": "obj-alpha", "label": "Alpha Sector", "x": 6.0, "y": 2.0, "controller": "NEUTRAL"},
-        {"id": "obj-bravo", "label": "Bravo Sector", "x": 6.0, "y": 5.5, "controller": "NEUTRAL"},
+        {"id": "obj-alpha", "label": "Alpha Sector", "x": 22.0, "y": 7.0, "controller": "NEUTRAL"},
+        {"id": "obj-bravo", "label": "Bravo Sector", "x": 22.0, "y": 20.0, "controller": "NEUTRAL"},
     ]
 
     peaks = []
     if terrain_type == "Mountain":
         peaks = [
-            {"cx": rng.uniform(3, 9), "cy": rng.uniform(2, 6), "h": rng.uniform(150, 300), "r2": rng.uniform(4, 12)}
+            {"cx": rng.uniform(11, 33), "cy": rng.uniform(7, 21), "h": rng.uniform(150, 300), "r2": rng.uniform(53.6, 160.8)}
             for _ in range(rng.randint(1, 3))
         ]
 
@@ -295,8 +295,8 @@ def _build_battlefield_from_scenario(scenario: Dict[str, Any]) -> BattlefieldSta
 
     return BattlefieldState(
         turn=1,
-        width=12,
-        height=8,
+        width=44,
+        height=28,
         weather=weather,
         units=battlefield_units,
         objectives=battlefield_objectives,

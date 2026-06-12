@@ -75,12 +75,12 @@ class BattlefieldUnit(BaseModel):
     max_hp: float = 100.0
     attack: float = 25.0
     defense: float = 15.0
-    range: float = 2.0
-    mobility: float = 2.0
+    range: float = 7.3
+    mobility: float = 7.3
     alive: bool = True
     assetClass: Optional[str] = "Infantry"
     allianceRole: Optional[str] = None
-    detection_range: float = 3.0
+    detection_range: float = 11.0
 
 
 class BattlefieldObjective(BaseModel):
@@ -95,8 +95,8 @@ class BattlefieldObjective(BaseModel):
 
 class BattlefieldState(BaseModel):
     turn: int = 1
-    width: int = 12
-    height: int = 8
+    width: int = 44
+    height: int = 28
     weather: str = "Clear"
     units: List[BattlefieldUnit] = []
     objectives: List[BattlefieldObjective] = []
