@@ -354,6 +354,72 @@ GENERATE RAW JSON SECURE DICTIONARY:`;
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.toString();
 
+    const response_schema = {
+        type: 'OBJECT',
+        properties: {
+            u: {
+                type: 'ARRAY',
+                description: 'Array of deployed units',
+                items: {
+                    type: 'OBJECT',
+                    properties: {
+                        l: { type: 'STRING', description: 'Unit label' },
+                        c: { 
+                            type: 'STRING', 
+                            enum: ['Infantry', 'Mechanized', 'Armor', 'Artillery', 'Recon', 'Logistics', 'Command Unit', 'Infrastructure', 'Objective'],
+                            description: 'Asset class of the unit' 
+                        },
+                        r: { 
+                            type: 'STRING', 
+                            enum: ['FRIENDLY', 'ENEMY', 'NEUTRAL', 'INFRASTRUCTURE'],
+                            description: 'Alliance role of the unit' 
+                        },
+                        x: { type: 'INTEGER', description: 'Grid X position (1-44)' },
+                        y: { type: 'INTEGER', description: 'Grid Y position (1-28)' }
+                    },
+                    required: ['l', 'c', 'r', 'x', 'y']
+                }
+            },
+            p: {
+                type: 'ARRAY',
+                description: 'EXACTLY 3 terrain peaks determining map topography',
+                items: {
+                    type: 'OBJECT',
+                    properties: {
+                        x: { type: 'INTEGER', description: 'Peak center X (1-44)' },
+                        y: { type: 'INTEGER', description: 'Peak center Y (1-28)' },
+                        h: { type: 'NUMBER', description: 'Height float (0.5 to 1.5)' }
+                    },
+                    required: ['x', 'y', 'h']
+                }
+            },
+            m: {
+                type: 'OBJECT',
+                description: 'Terrain map object specifying layout grid',
+                properties: {
+                    s: {
+                        type: 'ARRAY',
+                        description: 'Map dimensions [width, height] = [44, 28]',
+                        items: { type: 'INTEGER' }
+                    },
+                    t: {
+                        type: 'ARRAY',
+                        description: '2D terrain cells grid of size [height][width] (28 rows of 44 cols)',
+                        items: {
+                            type: 'ARRAY',
+                            items: {
+                                type: 'STRING',
+                                enum: ['plain', 'forest', 'hill', 'mountain', 'river', 'road', 'urban']
+                            }
+                        }
+                    }
+                },
+                required: ['s', 't']
+            }
+        },
+        required: ['u', 'p', 'm']
+    };
+
     const res = await fetch(`${finalApiBaseUrl}/sitrep`, {
         method: 'POST',
         headers: { 
@@ -364,9 +430,10 @@ GENERATE RAW JSON SECURE DICTIONARY:`;
         body: JSON.stringify({
             instruction,
             battlefield_data,
-            max_new_tokens: 500,    // Increased cap for safety
+            max_new_tokens: 2048,    // Increased cap to allow full 44x28 grid output
             use_cache: true,
             do_sample: false,       // Greedy decoding
+            response_schema,
         })
     });
 

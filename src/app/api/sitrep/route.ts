@@ -34,6 +34,7 @@ interface SitrepRequestBody {
     end_simulation?: boolean;
     initialize_scenario?: boolean;
     scenario?: unknown;
+    response_schema?: any;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -319,7 +320,8 @@ export async function POST(req: Request) {
                     temperature: payload.temperature,
                     maxOutputTokens: payload.max_new_tokens,
                     topP: payload.top_p,
-                    ...(isJsonRequested ? { responseMimeType: "application/json" } : {})
+                    ...(isJsonRequested ? { responseMimeType: "application/json" } : {}),
+                    ...(raw.response_schema ? { responseSchema: raw.response_schema } : {})
                 }
             };
 
