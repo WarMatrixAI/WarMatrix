@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF } from '@react-three/drei';
 import { UrbanMapResponse } from '@/lib/procedural/types';
-import { DISTRICT_COLORS, ROAD_COLORS, getGLBPath, DEFAULT_ASSET_SCALES } from '@/lib/procedural/assetRegistry';
+import { DISTRICT_COLORS, ROAD_COLORS, getGLBPath, DEFAULT_ASSET_SCALES, getSubAssets } from '@/lib/procedural/assetRegistry';
 
 interface ProceduralMap3DProps {
   mapData: UrbanMapResponse;
@@ -35,9 +35,10 @@ function GLBModel({ path, position, rotation, height, color }: { path: string; p
   // Clone filled model with translucent material & emissive neon color matching district type
   const clonedFilled = useMemo(() => {
     const s = new THREE.Group();
-    const childrenToCopy = (subIndex !== undefined && subIndex >= 0 && subIndex < scene.children.length)
-      ? [scene.children[subIndex]]
-      : scene.children;
+    const subAssets = getSubAssets(scene);
+    const childrenToCopy = (subIndex !== undefined && subIndex >= 0 && subIndex < subAssets.length)
+      ? [subAssets[subIndex]]
+      : subAssets;
 
     childrenToCopy.forEach((child) => {
       s.add(child.clone());
@@ -64,9 +65,10 @@ function GLBModel({ path, position, rotation, height, color }: { path: string; p
   // Clone wireframe overlay mesh with additive blending
   const clonedWireframe = useMemo(() => {
     const s = new THREE.Group();
-    const childrenToCopy = (subIndex !== undefined && subIndex >= 0 && subIndex < scene.children.length)
-      ? [scene.children[subIndex]]
-      : scene.children;
+    const subAssets = getSubAssets(scene);
+    const childrenToCopy = (subIndex !== undefined && subIndex >= 0 && subIndex < subAssets.length)
+      ? [subAssets[subIndex]]
+      : subAssets;
 
     childrenToCopy.forEach((child) => {
       s.add(child.clone());
@@ -108,8 +110,8 @@ function GLBModel({ path, position, rotation, height, color }: { path: string; p
 
   return (
     <group position={finalPosition} rotation={finalRotation} scale={scale}>
-      <primitive object={clonedFilled} rotation={[Math.PI / 2, 0, 0]} />
-      <primitive object={clonedWireframe} rotation={[Math.PI / 2, 0, 0]} />
+      <primitive key={`${path}-${subIndex}`} object={clonedFilled} rotation={[Math.PI / 2, 0, 0]} />
+      <primitive key={`${path}-${subIndex}-wire`} object={clonedWireframe} rotation={[Math.PI / 2, 0, 0]} />
     </group>
   );
 }
