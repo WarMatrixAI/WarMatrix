@@ -328,12 +328,13 @@ export async function POST(req: Request) {
             const cookieStore = await cookies();
             const selectedModel = cookieStore.get(GEMINI_MODEL_COOKIE)?.value?.trim();
             const modelName = selectedModel || (process.env.GEMINI_MODEL ?? 'gemini-3.5-flash');
-            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`;
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
             const res = await fetch(geminiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'x-goog-api-key': geminiApiKey,
                 },
                 body: JSON.stringify(geminiPayload),
                 signal: AbortSignal.timeout(INFERENCE_TIMEOUT_MS),
