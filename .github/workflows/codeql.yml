@@ -8,7 +8,7 @@ name: "WarMatrix Security Suite"
 
 on:
   push:
-    branches: [ "main", "develop", "release/*" ] # Protects core and stable lines
+    branches: [ "main"] 
   pull_request:
     branches: [ "**" ]                        # Checks absolutely every PR from any branch before it can merge
   schedule:
