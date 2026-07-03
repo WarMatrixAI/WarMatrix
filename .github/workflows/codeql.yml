@@ -62,7 +62,7 @@ jobs:
       with:
         category: "/language:${{matrix.language}}"
 
-  # Job 2: Fast Dependency (SCA) and Infrastructure-as-Code (IaC) Scan
+ # Job 2: Fast Dependency (SCA) and Infrastructure-as-Code (IaC) Scan
   supply-chain:
     name: Trivy Security Scan
     runs-on: 'ubuntu-latest'
@@ -75,13 +75,14 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Run Trivy Vulnerability Scanner
-      uses: aquasecurity/trivy-action@master
+      uses: aquasecurity/trivy-action@v0.36.0 # Pinned to a stable release version
       with:
-        scan-type: 'fs'                # Scans the entire file system of the repo
-        security-checks: 'vuln,config' # 'vuln' catches bad dependencies, 'config' catches Docker/IaC flaws
-        format: 'sarif'                # Generates a standard format GitHub understands
+        scan-type: 'fs'
+        scan-ref: '.'                  # Explicitly targets the repo root directory
+        scanners: 'vuln,config'         # Replaced 'security-checks' with the valid 'scanners' input
+        format: 'sarif'
         output: 'trivy-results.sarif'
-        severity: 'CRITICAL,HIGH'      # Filters out low-priority noise
+        severity: 'CRITICAL,HIGH'
 
     - name: Upload Trivy results to GitHub Security
       uses: github/codeql-action/upload-sarif@v4
