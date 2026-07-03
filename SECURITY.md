@@ -13,10 +13,9 @@ We only support the latest version
 
 ### **1\. How to Report**
 
-If you discover a security flaw (e.g., AI prompt injection risks, simulation engine buffer overflows, or exposed API keys), please report it via one of the following methods:
+If you discover a security flaw (e.g., AI prompt injection risks, simulation engine buffer overflows, or exposed API keys), please report it via the following methods:
 
 * **GitHub Private Vulnerability Reporting:** Navigate to the **Security** tab of this repository, click **Vulnerabilities**, and select **Report a vulnerability**. (Recommended)  
-* **Email:** Send a detailed report to security@warmatrix.io (optionally encrypted using our PGP key found in SECURITY\_KEY.asc).
 
 ### **2\. What to Include**
 
