@@ -36,9 +36,9 @@ def get_terrain_properties(
     Procedurally determine the terrain characteristics at a continuous coordinate (x, y)
     within the 12x8 tactical map space.
     """
-    # 1. Road Overlay: Check if coordinate lies on the rapid transit supply corridor (y is near 4.0)
+    # 1. Road Overlay: Check if coordinate lies on the rapid transit supply corridor (y is near 14.0)
     # Allows rapid movement, offers zero cover.
-    if 3.5 <= y <= 4.5:
+    if 13.0 <= y <= 15.0:
         return TerrainCell(
             terrain_type="road",
             elevation=0.0,
@@ -57,20 +57,12 @@ def get_terrain_properties(
             h = float(peak.get("h", 0))
             r2 = float(peak.get("r2", 4.0))
             d2 = (x - cx) ** 2 + (y - cy) ** 2
-            # map peaks CX/CY may be on the 44x28 scaled coordinates; map back if needed
-            # but usually scenario builders output them scaled or unscaled. Let's make it robust:
-            # if cx > 12: cx = (cx / 44.0) * 12.0
-            # if cy > 8: cy = (cy / 28.0) * 8.0
-            if cx > 12.0:
-                cx = (cx / 44.0) * 12.0
-            if cy > 8.0:
-                cy = (cy / 28.0) * 8.0
 
             elevation += h * math.exp(-d2 / (2.0 * max(0.1, r2)))
 
     # Clamp coordinates to integer cells for procedural category checks
-    cx = int(max(0, min(11, math.floor(x))))
-    cy = int(max(0, min(7, math.floor(y))))
+    cx = int(max(0, min(43, math.floor(x))))
+    cy = int(max(0, min(27, math.floor(y))))
 
     t_upper = global_terrain.upper()
 
@@ -144,7 +136,7 @@ def get_terrain_properties(
 
     elif "COASTAL" in t_upper:
         # Coastal water boundaries
-        if cx >= 9:
+        if cx >= 33:
             return TerrainCell(
                 terrain_type="water",
                 elevation=-10.0,

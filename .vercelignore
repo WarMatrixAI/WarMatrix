@@ -1,0 +1,6 @@
+# Ignore heavy asset folders in Vercel upload
+ai_server
+screenshots
+.venv
+.next
+node_modules

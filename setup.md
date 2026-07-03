@@ -62,14 +62,17 @@ Use this for the best performance. Optimized for NVIDIA GPUs using Conda and Uns
 Use this if you are VRAM-constrained or want to run the model on a separate machine in your network via LM Studio.
 👉 **[View LM Studio Guide](./ai_server/SETUP_LM_STUDIO.md)**
 
+### **Method D: Gemini API (Cloud-based)**
+Use this for a fully managed cloud experience. No local GPU required.
+👉 **[View Gemini Setup Guide](./ai_server/SETUP_GEMINI.md)**
+
 ---
 
 ## 🚀 Phase 4: Launching the System
 
-Once all components are configured, you can launch the entire suite concurrently:
+Once all components are configured, you can launch the entire suite concurrently using:
 
 ```bash
-# Launch both Frontend and Backend concurrently
 npm run dev
 ```
 

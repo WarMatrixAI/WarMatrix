@@ -489,12 +489,10 @@ export function TacticalMapDisplay({
     });
 
     const toDisplayX = (x: number) => {
-        const raw = x <= 12 ? Math.round((x / 12) * COLS) : x;
-        return Math.max(1, Math.min(COLS, raw));
+        return Math.max(1, Math.min(COLS, Math.round(x)));
     };
     const toDisplayY = (y: number) => {
-        const raw = y <= 8 ? Math.round((y / 8) * ROWS) : y;
-        return Math.max(1, Math.min(ROWS, raw));
+        return Math.max(1, Math.min(ROWS, Math.round(y)));
     };
 
     const movementVectors = useMemo(() => {
@@ -665,63 +663,12 @@ export function TacticalMapDisplay({
                 }
             `}</style>
 
-            {/* ── HUD Panels ── */}
-            <div className="absolute top-3 left-3 z-30 pointer-events-none flex flex-col gap-2">
-                {/* Terrain Panel */}
-                <div
-                    className="flex items-center gap-2.5 px-3 py-1.5 rounded-sm"
-                    style={{
-                        background: 'rgba(4,10,22,0.80)',
-                        border: '1px solid rgba(31,111,235,0.28)',
-                        backdropFilter: 'blur(6px)',
-                    }}
-                >
-                    <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: tc.infoColor, boxShadow: `0 0 6px ${tc.infoColor}` }} />
-                    <div className="flex flex-col">
-                        <span className="text-[10.5px] font-mono font-bold uppercase tracking-[0.2em] text-[#4B6A8A] leading-none mb-1">
-                            TERRAIN STATUS
-                        </span>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[12.5px] font-mono font-bold text-[#E6EDF3]">
-                                {terrainType}
-                            </span>
-                            <span className="text-[10px] font-mono text-[#F59E0B] uppercase">
-                                Operational
-                            </span>
-                        </div>
-                    </div>
-                </div>
 
-                {/* Weather Panel */}
-                <div
-                    className="flex items-center gap-2.5 px-3 py-1.5 rounded-sm"
-                    style={{
-                        background: 'rgba(4,10,22,0.80)',
-                        border: '1px solid rgba(31,111,235,0.28)',
-                        backdropFilter: 'blur(6px)',
-                    }}
-                >
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#3A8DFF', boxShadow: `0 0 6px #3A8DFF` }} />
-                    <div className="flex flex-col">
-                        <span className="text-[10.5px] font-mono font-bold uppercase tracking-[0.2em] text-[#4B6A8A] leading-none mb-1">
-                            WEATHER STATUS
-                        </span>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[12.5px] font-mono font-bold text-[#E6EDF3]">
-                                {weather ?? 'Partly Cloudy'} / {getWeatherTemp(weather)}
-                            </span>
-                            <span className="text-[10px] font-mono text-[#22C55E] uppercase">
-                                Visibility: {getWeatherVisibility(weather)}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             {/* ── Scenario title & End Simulation ── */}
             {scenarioTitle && (
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
-                    <div className="px-3 py-1 rounded-sm pointer-events-none" style={{
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex flex-row items-center gap-2 flex-nowrap whitespace-nowrap">
+                    <div className="px-3 py-1 rounded-sm pointer-events-none whitespace-nowrap shrink-0" style={{
                         background: 'rgba(0,0,0,0.80)',
                         border: '1px solid rgba(31,111,235,0.25)',
                         backdropFilter: 'blur(4px)',
@@ -734,7 +681,7 @@ export function TacticalMapDisplay({
                     {onExecuteTurn && (
                         <button
                             onClick={onExecuteTurn}
-                            className="px-3 py-[5px] rounded-sm flex items-center gap-2 transition-all group animate-pulse"
+                            className="px-3 py-[5px] rounded-sm flex items-center gap-2 transition-all group animate-pulse whitespace-nowrap shrink-0"
                             style={{
                                 background: 'rgba(58,141,255,0.15)',
                                 border: '1px solid rgba(58,141,255,0.45)',
@@ -751,7 +698,7 @@ export function TacticalMapDisplay({
                     {onEndSimulation && (
                         <button
                             onClick={onEndSimulation}
-                            className="px-3 py-[5px] rounded-sm flex items-center gap-2 transition-all group"
+                            className="px-3 py-[5px] rounded-sm flex items-center gap-2 transition-all group whitespace-nowrap shrink-0"
                             style={{
                                 background: 'rgba(4,10,22,0.80)',
                                 border: '1px solid rgba(31,111,235,0.28)',

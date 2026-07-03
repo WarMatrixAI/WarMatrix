@@ -1,235 +1,149 @@
-## **1. Current System Overview**
+# WarMatrix Simulation Architecture Upgrades Blueprint (improvements.md)
 
-The existing simulation operates on a **grid-based coordinate system (≈30×40)** where entities (“blips”) represent friendly units, enemy units, and objectives. Each entity is assigned a fixed health value, and interactions are resolved through direct commands specifying movement and target coordinates.
-
-The system supports:
-
-* 2D tactical visualization with indexed grid positions
-* 3D terrain rendering (procedural elevation only)
-* Basic simulation through coordinate-driven movement and attack resolution
-* Static objective capture mechanics (progress-based)
-
-While functional, the current model abstracts away most real-world dynamics, limiting realism and strategic depth.
+This document outlines the detailed architectural blueprints, transition roadmaps, and specifications for upgrades to the **WarMatrix Tactical Simulation Engine**. It replaces previous documents to serve as the single, authoritative reference for wargaming upgrades.
 
 ---
 
-## **2. Limitations of the Current Approach**
+## 🗺️ 1. Transition to Real-World Continuous Coordinate System
 
-Several structural constraints prevent the simulation from scaling into a realistic wargaming environment:
+The legacy grid-based coordinate system ($\approx 30 \times 40$ discrete cells) abstracts away real-world dynamics, restricting range calculations, positioning, and pathfinding. 
 
-### **2.1 Grid-Based Coordinate System**
-
-* Discrete cells restrict movement and positioning
-* No concept of real-world scale, distance, or orientation
-* Limits integration with realistic terrain and physics
-
-### **2.2 Lack of Semantic Terrain**
-
-* Terrain is purely elevation-based (mountains only)
-* No differentiation between urban areas, roads, water, or cover
-* 3D map is visual-only and not used in simulation logic
-
-### **2.3 Abstract Entity Modeling**
-
-* All entities are treated uniformly (100 HP)
-* No differentiation in unit roles, capabilities, or behavior
-* Combat is deterministic and instantaneous
-
-### **2.4 Instantaneous Simulation Resolution**
-
-* Commands resolve immediately without time progression
-* No intermediate states such as movement, detection, or engagement phases
-
-### **2.5 Simplistic Objective System**
-
-* Objectives rely on static capture mechanics
-* No dynamic mission evolution or strategic variation
+### Specifications
+*   **Continuous Coordinates:** Transition the wargaming battlefield to a continuous spatial float coordinate system:
+    $$x \in [1.0, 44.0], \quad y \in [1.0, 28.0]$$
+*   **Scale and Distance:** Introduce Euclidean distance formulas ($d = \sqrt{\Delta x^2 + \Delta y^2}$) for detection ranges, weapon engagement radii, and velocity calculations.
+*   **Orientation and Heading:** Units will track orientation angles ($[0.0 - 360.0]$ degrees) to enable flanking bonuses, frontal armor protection, and direction-specific sensor arcs.
 
 ---
 
-## **3. Transition to a Real-World Coordinate System**
+## 🎲 2. Deterministic Seed-Based Procedural Map Generation
 
-A foundational upgrade involves replacing the current grid-based coordinates with a **continuous, real-world coordinate system**.
+Map generation shifts from expensive, non-deterministic AI prompt outputs to a rule-based deterministic procedural pipeline driven by a **32-bit unsigned seed value**.
 
-### **Proposed Changes**
-
-* Use continuous spatial coordinates (latitude/longitude abstraction)
-* Introduce real distance, direction, and scale
-* Generate maps based on **randomized coordinate regions** instead of fixed grids
-
-### **Impact**
-
-* Enables realistic movement, range calculation, and spatial reasoning
-* Allows seamless integration of terrain, airspace, and maritime zones
-* Removes artificial constraints imposed by discrete grids
-
----
-
-## **4. Evolution of Map Generation**
-
-### **Current State**
-
-* Procedural generation produces only elevation (mountainous terrain)
-
-### **Target State**
-
-Map generation evolves into a **multi-layered world model**:
-
-#### **4.1 Terrain Semantics**
-
-Each location includes:
-
-* Terrain type (urban, plain, mountain, water)
-* Elevation
-* Movement cost
-* Cover value
-* Visibility modifiers
-
-#### **4.2 Environment Types**
-
-* Urban zones (dense structures, limited visibility)
-* Open terrain (high visibility, low cover)
-* Water bodies (naval domain)
-* Roads (faster traversal)
-
-#### **4.3 3D Integration**
-
-* 3D map becomes a **representation of simulation data**, not just a visual mesh
-* Urban environments initially approximated using simple structures before full modeling
+### Specifications
+*   **Seed System Range:** $0$ to $4,294,967,295$ (unsigned 32-bit integer).
+*   **Deterministic Guarantee:** Given the same seed, the generator must produce identical topography, elevation maps, biomes, road networks, infrastructure locations, objectives, force deployments, and weather parameters.
+*   **Procedural Pipeline:**
+    $$\text{Seed} \rightarrow \text{Terrain Generator} \rightarrow \text{Water Generator} \rightarrow \text{Biome Generator} \rightarrow \text{Infrastructure} \rightarrow \text{Objectives} \rightarrow \text{Force Deployment}$$
+*   **Semantic Terrain Layer:** Predefined rule-based algorithms generating elevations, cover values, movement costs, visibility modifiers, and traversability metrics.
+    *   *Roads:* Fast traversal (`movement_cost = 0.5`, offers 0 cover, 1.0 visibility).
+    *   *Forests:* Traversal penalty (`movement_cost = 1.3`, 0.5 cover, 0.6 visibility).
+    *   *Deserts:* Dunes traversal penalty (`movement_cost = 1.2`, 0.1 cover, 0.9 visibility).
+    *   *Urban blocks:* Traversal penalty (`movement_cost = 1.5`, 0.6 cover, 0.5 visibility).
+    *   *Mountains:* Traversal penalty (`movement_cost = 2.0`, 0.4 cover, 0.7 visibility).
+    *   *Coastal water:* Impassable for land units (`movement_cost = 999.0`).
+*   **Urban Environment Generation:** Seed-based road layout networks, city blocks, districts (industrial, residential, military zones) with predefined cover values and communication signal interference.
+*   **Maritime Environment Generation:** Support for coastlines, rivers, deep-water regions, and lakes to establish land-sea domains (naval operations, amphibious logistics).
+*   **Strategic Infrastructure Generation:** Bridges, airfields, port hubs, military bases, radar arrays, observatories, and fuel depots are procedurally mapped based on terrain suitability.
+*   **Natural Objective Emergence:** Objectives are generated directly from infrastructure assets (e.g. secure mountain pass, seize radar array, defend fuel depot) instead of arbitrary grid coordinates.
+*   **Force Deployment Suitability:**
+    *   *Mechanized Forces:* Procedurally deploy near roads, open terrain, and supply lines.
+    *   *Infantry Forces:* Spawn in cover (urban blocks, forests, fortifications).
+    *   *Naval Forces:* Spawn in open water and deep port lanes.
+    *   *Air Assets:* Spawn on airfields and forward bases.
 
 ---
 
-## **5. Time-Stepped Simulation Architecture**
+## ⏱️ 3. Time-Stepped Continuous Simulation Loop
 
-The simulation will transition from instant resolution to a **tick-based system**.
+The wargame transitions from instant turn resolution to a concurrent, continuous tick-based execution model.
 
-### **Simulation Loop**
-
-Each time step processes:
-
-1. Unit state updates
-2. Movement progression
-3. Detection checks
-4. Engagement resolution
-5. Objective updates
-
-### **Impact**
-
-* Introduces temporal dynamics
-* Allows interruption, reaction, and emergent behavior
-* Enables more realistic combat flow
+### Specifications
+*   **5-Step Tick Cycle:** Each simulation tick executes:
+    1.  **Unit State updates:** Parse command queues, check battery levels and resource status.
+    2.  **Movement Progression:** Incrementally step unit positions along coordinates based on terrain and weather speed multipliers.
+    3.  **Detection Checks:** Enforce line-of-sight (LoS) checks and update perceived states.
+    4.  **Combat Resolution:** Apply probabilistic hit/damage equations for units in engagement range.
+    5.  **Objective Updates:** Calculate zone capture progress.
+*   **Non-Blocking Decision-Making:** AI and users issue orders asynchronously. The simulation continuously updates and propagates actions in the background.
 
 ---
 
-## **6. Advanced Entity Modeling**
+## 🪖 4. Troop-Based Modeling & Unit Compositions
 
-Entities will evolve from abstract blips into **stateful units with defined roles**.
+Abstract health points (HP = 100) are replaced by exact troop counts and granular composition parameters.
 
-### **Enhancements**
-
-* Unit types (infantry, armor, recon, etc.)
-* Attributes:
-
-  * Detection range
-  * Engagement range
-  * Mobility
-  * Behavior patterns
-
-### **Combat Model Upgrade**
-
-* Replace simple HP with **state-based damage**:
-
-  * Active
-  * Damaged (reduced effectiveness)
-  * Destroyed
+### Specifications
+*   **Unit Breakdown:** Units maintain explicit counts for infantry squads, support personnel, and heavy asset crews.
+    *   *Example:* Infantry: 32, Support: 6, Heavy: 2.
+*   **Granular Casualties:** Engage outcomes degrade troop counts (e.g. losing 4 infantry squads) rather than subtracting abstract HP numbers.
+*   **Non-Linear Degradation:** Operational effectiveness and fire rate degrade non-linearly as troop counts decrease.
 
 ---
 
-## **7. Detection and Engagement System**
+## 🔋 5. Equipment & Resource Logistics Modeling
 
-Combat will follow a structured pipeline:
+Units track ammunition, weapons, and logistical supplies individually. Ticks consume resources dynamically based on actions.
 
-1. **Detection** (based on distance, terrain, and conditions)
-2. **Targeting** (line-of-sight and prioritization)
-3. **Engagement** (range, accuracy, weapon effects)
-4. **Resolution** (probabilistic outcomes)
-
-### **Key Additions**
-
-* Line-of-sight constraints
-* Terrain-influenced visibility
-* Probabilistic hit and damage models
+### Specifications
+*   **Equipment Inventories:** Units track weapon assets (rifles, machine guns, anti-armor launchers) and support equipment (batteries, communications devices).
+*   **Logistical Supplies:** Tracked resource values include:
+    *   *Ammunition:* Consumed per weapon firing event. Low ammo reduces engagement capabilities.
+    *   *Fuel:* Consumed during vehicle movements. Low fuel restricts movement speed and traversal ranges.
+    *   *Food:* Consumed over time. Low food levels degrade unit morale and physical endurance.
+    *   *Batteries:* Consumed during active sensor/comms usage. Low batteries degrade detection range and signal transmission.
+*   **Combat Ineffectiveness:** Units can become combat-ineffective (due to lack of ammo/fuel) without being destroyed, introducing resupply/recovery mechanics.
 
 ---
 
-## **8. Environmental and Weather Systems**
+## 💥 6. State-Dependent Combat Effectiveness
 
-Environmental factors will directly influence simulation outcomes.
+Damage calculations shift from deterministic values to a state-dependent combat effectiveness function:
 
-### **Parameters**
+$$\text{effectiveness} = f(\text{troop\_count}, \text{ammo}, \text{terrain}, \text{morale})$$
 
-* Weather (rain, fog, storms)
-* Time of day (day/night cycles)
-* Visibility range
-
-### **Effects**
-
-* Detection degradation
-* Movement penalties
-* Accuracy variation
+*   *Morale & Suppression:* Suppressed units or units with depleted supplies suffer accuracy penalties.
+*   *Environmental Conditions:* Active weather (storms, sandstorms) directly degrade weapon ranges and hit probabilities.
 
 ---
 
-## **9. Objective and Mission System Redesign**
+## 👁️ 7. Symmetric Fog-of-War & State Separation
 
-Objectives will shift from static capture mechanics to **dynamic mission-driven logic**.
+Robust separation of wargaming ground truth from the perceived operational picture prevents cheating and implements realistic strategic uncertainty.
 
-### **New Objective Types**
-
-* Area control
-* Reconnaissance
-* Escort and defense
-* Target elimination
-
-### **Enhancements**
-
-* Dynamic objective updates during simulation
-* Contested zones and influence-based control
-* Partial success and failure conditions
-
----
-
-## **10. Multi-Domain Combat Expansion**
-
-The simulation will expand beyond land-based operations into a **multi-domain environment**.
-
-### **Domains**
-
-* **Land:** terrain-aware movement and combat
-* **Air:** altitude-based movement, large detection radius
-* **Naval:** surface movement restricted to water
-* **Underwater:** sonar-based detection, no line-of-sight dependency
-
-### **Note**
-
-Multi-domain integration will be introduced incrementally, with land simulation fully stabilized first.
+### Specifications
+*   **Ground Truth State (Hidden):** The absolute, hidden wargame engine state. Tracks exact troop compositions, inventory counts, coordinates, and health properties.
+*   **Observed State (Perceived):** Imperfect, filtered views provided symmetrically to the user, Allied AI, and Enemy AI:
+    *   Estimated troop counts (provided as ranges, e.g. 20-30 infantry).
+    *   Inferred weapon classes and stale position vectors.
+    *   Confidence ratings (low, medium, high) based on distance and weather.
+*   **Symmetric Fog-of-War:** No actor has access to ground truth. Player, Allied AI, and Enemy AI operate under the same detection limits.
+*   **Dual AI Architecture:**
+    *   *Allied AI (Execution Layer):* Decentrally executes commander directives. Coordinates maneuvers based solely on observed state parameters.
+    *   *Enemy AI (Command Layer):* Opposing commander. Plans maneuvers and issues orders using estimated player troop counts and coordinates.
+*   **Detection-Driven Updates:** Perceived details improve (narrower ranges, higher confidence) based on observer proximity, active recon assets, and contact duration. contact loss causes info to go stale.
 
 ---
 
-## **11. Simulation Lifecycle and Outcome Evaluation**
+## 📡 8. Command Propagation & Communication Delays
 
-The simulation will adopt a structured lifecycle:
+Centralized, instantaneous command execution is replaced by a delayed transmission pipeline.
 
-* Initialization
-* Active engagement
-* Resolution
-* Post-simulation evaluation
+### Specifications
+*   **Transmission Pipeline:**
+    $$\text{Command Issued} \rightarrow \text{Transmission Delay} \rightarrow \text{Unit Receives} \rightarrow \text{Execution Begins}$$
+*   **Delay Calculation:** Latency is modeled dynamically:
+    $$\text{delay} = \text{base\_latency} + \text{distance\_factor} + \text{terrain\_penalty}$$
+    *   *Terrain penalty:* High elevation mountains or dense urban blocks interfere with radio signals, increasing delay or causing complete packet drop.
+*   **Independent Channels:** Units communicate on separate, encrypted channels. Disabling a unit's radio (low battery or jammer) isolates it from commander control.
 
-### **Outcome Metrics**
+---
 
-* Objective completion
-* Casualties and survivability
-* Territorial control
-* Operational efficiency
+## 🤖 9. Restructured Role of AI
 
-This replaces binary win/loss conditions with **graded mission outcomes**.
+AI is moved up the generation stack to focus on qualitative contextualization:
+*   **Procedural Systems Handle:** Terrains, elevations, water meshes, infrastructures, and force coordinates.
+*   **AI Models Handle:** Mission briefings, threat SITREPs, intelligence reports, and narrative wargaming AARs.
+
+---
+
+## 🏆 10. Lifecycle & Outcome Evaluation
+
+Binary win/loss parameters are replaced by graded operational metrics evaluated across:
+*   Objective completion rates.
+*   Casualty and asset attrition ratios.
+*   Territorial control maps.
+*   Logistical operational efficiency.
+
+---
+*Created by the WarMatrix Tactical Simulation Architect Core*

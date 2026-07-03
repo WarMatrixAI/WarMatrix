@@ -1,9 +1,10 @@
 import { cookies, headers } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { GEMINI_API_KEY_COOKIE } from '@/lib/gemini-auth';
+import { GEMINI_API_KEY_COOKIE, GEMINI_MODEL_COOKIE } from '@/lib/gemini-auth';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const AI_SERVER_BASE = process.env.AI_SERVER_BASE_URL ?? 'http://127.0.0.1:8000';
-const SIM_SERVER_BASE = process.env.SIM_SERVER_BASE_URL ?? 'http://127.0.0.1:8001';
+const SIM_SERVER_BASE = process.env.SIM_SERVER_BASE_URL || (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/backend` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/backend` : 'http://127.0.0.1:8001'));
 const INFERENCE_TIMEOUT_MS = 300_000; // 5 min — CPU inference can be slow
 const HEALTH_TIMEOUT_MS = 5_000;     // 5 s  — quick ping only
 const SIM_TIMEOUT_MS = 120_000;
@@ -34,6 +35,7 @@ interface SitrepRequestBody {
     end_simulation?: boolean;
     initialize_scenario?: boolean;
     scenario?: unknown;
+    response_schema?: any;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -64,7 +66,8 @@ function clamp(val: number | undefined, min: number, max: number, def: number): 
 
 async function getGeminiApiKey(): Promise<string> {
     const cookieStore = await cookies();
-    return cookieStore.get(GEMINI_API_KEY_COOKIE)?.value?.trim() ?? '';
+    const cookieKey = cookieStore.get(GEMINI_API_KEY_COOKIE)?.value?.trim() ?? '';
+    return cookieKey || (process.env.GEMINI_API_KEY?.trim() ?? '');
 }
 
 async function requireGeminiApiKey() {
@@ -99,15 +102,39 @@ export async function GET() {
         return keyError;
     }
 
+    const geminiApiKey = await getGeminiApiKey();
+    const cookieStore = await cookies();
+    if (geminiApiKey) {
+        const selectedModel = cookieStore.get(GEMINI_MODEL_COOKIE)?.value?.trim();
+        const modelName = selectedModel || (process.env.GEMINI_MODEL ?? 'gemini-3.5-flash');
+        return NextResponse.json({
+            ok: true,
+            service: 'gemini-api',
+            model_loaded: true,
+            device: 'cloud',
+            model: modelName,
+        });
+    }
+
     try {
         const res = await fetch(`${AI_SERVER_BASE}/health`, {
             signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
         });
         const data = await res.json();
-        return NextResponse.json(data, { status: res.status });
+        let model = 'Local Model';
+        if (data.use_lm_studio) {
+            model = 'LM Studio';
+        } else if (data.model_path) {
+            const parts = data.model_path.split(/[\\/]/);
+            model = parts[parts.length - 1] || 'Local Model';
+        }
+        return NextResponse.json({
+            ...data,
+            model,
+        }, { status: res.status });
     } catch {
         return NextResponse.json(
-            { ok: false, error: 'ai_server_offline', model_loaded: false },
+            { ok: false, error: 'ai_server_offline', model_loaded: false, model: 'Offline' },
             { status: 503 }
         );
     }
@@ -160,9 +187,19 @@ export async function POST(req: Request) {
                 signal: AbortSignal.timeout(SIM_TIMEOUT_MS),
             });
 
+            if (!res.ok) {
+                const text = await res.text();
+                console.error(`initialize_scenario response failed with status ${res.status}:`, text.slice(0, 500));
+                return NextResponse.json(
+                    { error: 'simulation_backend_error', status: res.status, details: text.slice(0, 500) },
+                    { status: res.status }
+                );
+            }
+
             const data = await res.json();
             return NextResponse.json(data, { status: res.status });
         } catch (err: unknown) {
+            console.error("Error in initialize_scenario:", err);
             const isTimeout =
                 (err instanceof DOMException && err.name === 'TimeoutError') ||
                 (err instanceof Error && err.name === 'TimeoutError');
@@ -180,7 +217,7 @@ export async function POST(req: Request) {
             return NextResponse.json(
                 {
                     error: 'simulation_backend_offline',
-                    details: 'Could not reach the Python simulation backend. Is backend/main.py running on port 8001?',
+                    details: `Could not reach the Python simulation backend. Error: ${err instanceof Error ? err.message : String(err)}`,
                 },
                 { status: 503 }
             );
@@ -208,9 +245,19 @@ export async function POST(req: Request) {
                 signal: AbortSignal.timeout(SIM_TIMEOUT_MS),
             });
 
+            if (!res.ok) {
+                const text = await res.text();
+                console.error(`simulate_tick response failed with status ${res.status}:`, text.slice(0, 500));
+                return NextResponse.json(
+                    { error: 'simulation_backend_error', status: res.status, details: text.slice(0, 500) },
+                    { status: res.status }
+                );
+            }
+
             const data = await res.json();
             return NextResponse.json(data, { status: res.status });
         } catch (err: unknown) {
+            console.error("Error in simulate_tick:", err);
             const isTimeout =
                 (err instanceof DOMException && err.name === 'TimeoutError') ||
                 (err instanceof Error && err.name === 'TimeoutError');
@@ -228,7 +275,7 @@ export async function POST(req: Request) {
             return NextResponse.json(
                 {
                     error: 'simulation_backend_offline',
-                    details: 'Could not reach the Python simulation backend. Is backend/main.py running on port 8001?',
+                    details: `Could not reach the Python simulation backend. Error: ${err instanceof Error ? err.message : String(err)}`,
                 },
                 { status: 503 }
             );
@@ -255,7 +302,79 @@ export async function POST(req: Request) {
         top_p: clamp(raw.top_p, 0.1, 1.0, 0.9),
     };
 
-    // 5. Forward to the Python AI server
+    // 5. Forward to Gemini API directly or the Python AI server
+    if (geminiApiKey) {
+        try {
+            const systemInstruction = 
+                "You are the WarMatrix Tactical AI Strategist. The wargame simulation has transitioned to a continuous, real-world coordinate system " +
+                "with float values for coordinates and multi-layered semantic terrain (Urban cover, Plains open ground, Mountain elevation, " +
+                "and rapid-transit Roads). The system operates on a time-stepped tick loop incorporating stateful units (Infantry, Armor, Recon, " +
+                "Artillery, Logistics, Command) that transition through Active, Damaged, and Destroyed statuses. Weather conditions " +
+                "(Fog, Storm, Sandstorm) directly reduce vision, movement, and accuracy. When providing briefings, sitreps, or explaining " +
+                "decisions, always reason and speak in terms of these continuous spatial dynamics, cover values, weather impact, and " +
+                "detailed stateful entity attributes.";
+
+            const userPrompt = 
+                "Below is an instruction that describes a task, paired with an input that provides further context. " +
+                "Write a response that appropriately completes the request.\n" +
+                "Return only the final SITREP output. Do not include reasoning, analysis notes, or <think> blocks.\n\n" +
+                `### Instruction:\n${payload.instruction}\n\n` +
+                `### Input:\n${payload.battlefield_data}\n\n` +
+                "### Response:\n";
+
+            const isJsonRequested = payload.instruction.toLowerCase().includes("json");
+
+            const cookieStore = await cookies();
+            const selectedModel = cookieStore.get(GEMINI_MODEL_COOKIE)?.value?.trim();
+            const modelName = selectedModel || (process.env.GEMINI_MODEL ?? 'gemini-3.5-flash');
+
+            const genAI = new GoogleGenerativeAI(geminiApiKey);
+            const model = genAI.getGenerativeModel({ 
+                model: modelName,
+                systemInstruction 
+            });
+
+            const result = await model.generateContent({
+                contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+                generationConfig: {
+                    temperature: payload.temperature,
+                    maxOutputTokens: payload.max_new_tokens,
+                    topP: payload.top_p,
+                    ...(isJsonRequested ? { responseMimeType: "application/json" } : {}),
+                    ...(raw.response_schema ? { responseSchema: raw.response_schema } : {})
+                }
+            });
+
+            const response = await result.response;
+            const responseText = response.text();
+            
+            return NextResponse.json({
+                ok: true,
+                response: responseText,
+                ai_narrative_output: responseText,
+                source: 'gemini_api'
+            });
+        } catch (err: any) {
+            if (err?.message?.includes('deadline exceeded') || err?.name === 'TimeoutError') {
+                return NextResponse.json(
+                    {
+                        error: 'gemini_api_timeout',
+                        details: `Gemini API did not respond within ${INFERENCE_TIMEOUT_MS / 1000}s.`,
+                    },
+                    { status: 504 }
+                );
+            }
+
+            return NextResponse.json(
+                {
+                    error: 'gemini_api_failed',
+                    details: err?.message ?? 'Unknown error during Gemini AI inference.',
+                },
+                { status: 500 }
+            );
+        }
+    }
+
     try {
         const res = await fetch(`${AI_SERVER_BASE}/api/sitrep`, {
             method: 'POST',
@@ -270,7 +389,6 @@ export async function POST(req: Request) {
         const data = await res.json();
 
         if (!res.ok) {
-            // ... (error handling remains the same)
             return NextResponse.json(
                 {
                     error: 'ai_inference_error',
@@ -287,6 +405,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json(data, { status: res.status });
     } catch (err: unknown) {
+        console.error("Error in sitrep fallback:", err);
         const isTimeout =
             (err instanceof DOMException && err.name === 'TimeoutError') ||
             (err instanceof Error && err.name === 'TimeoutError');
@@ -305,7 +424,7 @@ export async function POST(req: Request) {
         return NextResponse.json(
             {
                 error: 'ai_server_offline',
-                details: 'Could not reach the local AI server. Is backend_server.py running?',
+                details: `Could not reach the AI server. Error: ${err instanceof Error ? err.message : String(err)}`,
             },
             { status: 503 }
         );

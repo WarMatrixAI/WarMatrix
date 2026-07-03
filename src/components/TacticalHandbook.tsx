@@ -96,7 +96,7 @@ export function TacticalHandbook({ onMaximize }: TacticalHandbookProps) {
                 )}
             </div>
 
-            <div className="flex flex-col gap-1.5 max-h-[300px] overflow-y-auto pr-1 warmatrix-scrollbar">
+            <div className="flex flex-col gap-1.5 max-h-[500px] overflow-y-auto pr-1 warmatrix-scrollbar">
                 {selectedSop ? (
                     <div className="flex flex-col gap-2 p-2.5 rounded-sm border border-[#3A8DFF]/40 bg-[#0A1020] shadow-[0_0_20px_rgba(31,111,235,0.05)]">
                         <button 

@@ -79,8 +79,8 @@ Upon mission completion, the system transitions to a **Final Mission Report** (A
 *   **Core Math:** Custom Python-based simulation engine (`backend/engine/`) handling pathfinding, combat probability, and state persistence.
 
 ### AI Integration: Synthetic Strategy
-- **Engine:** Local LLM Backend (`ai_server/`).
-- **Model Layer:** Fine-tuned local models (e.g. Qwen, Llama).
+- **Engine:** Hybrid AI Backend (`ai_server/`) supporting local and cloud-based LLMs.
+- **Model Layer:** Fine-tuned local models (e.g. Qwen, Llama) or Cloud APIs (e.g. Gemini).
 - **Functionality:** 
   - Dynamic scenario generation based on user parameters.
   - Narrative transformations of raw simulation data into military-grade briefings.
@@ -117,5 +117,5 @@ npm run dev
 
 ## 📜 License
 
-WarMatrix is released under the **MIT License**. See [LICENSE](LICENSE) for more details.
+WarMatrix is released under the **GNU AFFERO GENERAL PUBLIC LICENSE**. See [LICENSE](LICENSE) for more details.
 

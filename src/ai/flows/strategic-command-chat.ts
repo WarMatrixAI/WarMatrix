@@ -2,11 +2,13 @@ import { z } from 'zod';
 
 const isVercel = process.env.VERCEL === 'true';
 
-const apiBaseUrl = isVercel
-    ? (process.env.VERCEL_ENV === 'production'
-        ? 'https://war-matrix.vercel.app/api' // Hardcode your production domain here
-        : (process.env.BACKEND_URL ? `${process.env.BACKEND_URL}/api` : '/api'))
-    : 'http://localhost:8000/api';
+const apiBaseUrl = process.env.NEXT_PUBLIC_APP_URL
+    ? `${process.env.NEXT_PUBLIC_APP_URL}/api`
+    : (isVercel
+        ? (process.env.VERCEL_ENV === 'production'
+            ? 'https://war-matrix.vercel.app/api' // Hardcode your production domain here
+            : (process.env.BACKEND_URL ? `${process.env.BACKEND_URL}/api` : '/api'))
+        : (typeof window !== 'undefined' ? '/api' : 'http://localhost:8000/api'));
 // ─── Input / Output Schemas ───────────────────────────────────────────────────
 
 const StrategicChatInputSchema = z.object({

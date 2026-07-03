@@ -18,6 +18,8 @@ interface AITerminalProps {
     logs: LogEntry[];
     isRunning: boolean;
     title?: string;
+    modelName?: string;
+    isGemini?: boolean;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -33,7 +35,7 @@ const levelStyles: Record<LogLevel, { color: string; bg: string; tag: string }> 
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function AITerminalConsole({ logs, isRunning, title = 'AI ENGINE TERMINAL' }: AITerminalProps) {
+export function AITerminalConsole({ logs, isRunning, title = 'AI ENGINE TERMINAL', modelName, isGemini }: AITerminalProps) {
     const bottomRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll to latest entry
@@ -150,8 +152,8 @@ export function AITerminalConsole({ logs, isRunning, title = 'AI ENGINE TERMINAL
                 className="flex items-center justify-between px-3 py-1.5 shrink-0"
                 style={{ borderTop: '1px solid rgba(31,111,235,0.12)', background: 'rgba(4,8,18,0.9)' }}
             >
-                <span className="text-[8px] font-mono text-[#2D3748] uppercase tracking-widest">
-                    WARMATRIX ENGINE v4.2 // LOCAL LLM CORE
+                <span className="text-[8px] font-mono text-[#4D637F] uppercase tracking-widest">
+                    {isGemini ? `GEMINI CLOUD // ${modelName ?? 'GEMINI'}` : `LOCAL LLM // ${modelName ?? 'LOCAL CORE'}`}
                 </span>
                 <span className="text-[8px] font-mono text-[#2D3748] tabular-nums">
                     {logs.length} LINES

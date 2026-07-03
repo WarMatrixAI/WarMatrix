@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const SIM_SERVER_BASE = process.env.SIM_SERVER_BASE_URL ?? 'http://127.0.0.1:8001';
+const SIM_SERVER_BASE = process.env.SIM_SERVER_BASE_URL || (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/backend` : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/backend` : 'http://127.0.0.1:8001'));
 
 export async function POST(req: Request) {
   try {

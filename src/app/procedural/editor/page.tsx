@@ -9,7 +9,8 @@ import {
   ASSET_REGISTRY,
   DISTRICT_COLORS,
   DEFAULT_ASSET_SCALES,
-  getGLBPath
+  getGLBPath,
+  getSubAssets
 } from '@/lib/procedural/assetRegistry';
 import { Button } from '@/components/ui/button';
 import {
@@ -109,9 +110,10 @@ function EditorGLBModel({
   // Clone filled model with translucent material & emissive neon color
   const clonedFilled = useMemo(() => {
     const s = new THREE.Group();
-    const childrenToCopy = (subIndex !== undefined && subIndex >= 0 && subIndex < scene.children.length)
-      ? [scene.children[subIndex]]
-      : scene.children;
+    const subAssets = getSubAssets(scene);
+    const childrenToCopy = (subIndex !== undefined && subIndex >= 0 && subIndex < subAssets.length)
+      ? [subAssets[subIndex]]
+      : subAssets;
 
     childrenToCopy.forEach((child) => {
       s.add(child.clone());
@@ -138,9 +140,10 @@ function EditorGLBModel({
   // Clone wireframe overlay mesh with additive blending
   const clonedWireframe = useMemo(() => {
     const s = new THREE.Group();
-    const childrenToCopy = (subIndex !== undefined && subIndex >= 0 && subIndex < scene.children.length)
-      ? [scene.children[subIndex]]
-      : scene.children;
+    const subAssets = getSubAssets(scene);
+    const childrenToCopy = (subIndex !== undefined && subIndex >= 0 && subIndex < subAssets.length)
+      ? [subAssets[subIndex]]
+      : subAssets;
 
     childrenToCopy.forEach((child) => {
       s.add(child.clone());
@@ -167,8 +170,8 @@ function EditorGLBModel({
 
   return (
     <group position={finalPosition} rotation={finalRotation} scale={scale}>
-      <primitive object={clonedFilled} rotation={[Math.PI / 2, 0, 0]} />
-      <primitive object={clonedWireframe} rotation={[Math.PI / 2, 0, 0]} />
+      <primitive key={`${path}-${subIndex}-${isSelected}`} object={clonedFilled} rotation={[Math.PI / 2, 0, 0]} />
+      <primitive key={`${path}-${subIndex}-${isSelected}-wire`} object={clonedWireframe} rotation={[Math.PI / 2, 0, 0]} />
     </group>
   );
 }
@@ -189,9 +192,10 @@ function EditorAssetOccupiedHighlight({
   const occupiedCells = useMemo(() => {
     if (!scene) return [];
     const subIndex = asset.subIndex;
-    const childrenToMeasure = (subIndex !== undefined && subIndex >= 0 && subIndex < scene.children.length)
-      ? [scene.children[subIndex]]
-      : scene.children;
+    const subAssets = getSubAssets(scene);
+    const childrenToMeasure = (subIndex !== undefined && subIndex >= 0 && subIndex < subAssets.length)
+      ? [subAssets[subIndex]]
+      : subAssets;
 
     if (childrenToMeasure.length === 0) return [];
 
@@ -291,6 +295,7 @@ function EditorAssetInstance({
   const STRUCTURE_COLORS: Record<string, string> = {
     residential:  '#10B981',  // Emerald green
     commercial:   '#EC4899',  // Magenta pink
+    destroyed:    '#6B7280',  // Slate gray
     industrial:   '#EF4444',  // Red
     office:       '#8B5CF6',  // Violet purple
     landmark:     '#FACC15',  // Golden yellow
@@ -361,10 +366,10 @@ function SubAssetSelector({
 }: {
   path: string;
   subIndex: number;
-  onChange: (index: number) => void;
+  onChange: (index: number, name?: string) => void;
 }) {
   const { scene } = useGLTF(path);
-  const children = scene.children;
+  const children = getSubAssets(scene);
 
   if (children.length <= 1) return null;
 
@@ -375,7 +380,11 @@ function SubAssetSelector({
       </label>
       <select
         value={subIndex}
-        onChange={(e) => onChange(parseInt(e.target.value))}
+        onChange={(e) => {
+          const idx = parseInt(e.target.value);
+          const childName = idx >= 0 ? (children[idx]?.name || `Mesh ${idx + 1}`) : undefined;
+          onChange(idx, childName);
+        }}
         className="w-full bg-[#02050A] border border-[#1F6FEB]/30 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#00e5ff] font-mono cursor-pointer"
       >
         <option value="-1">Show Entire Scene (All)</option>
@@ -403,12 +412,13 @@ export default function AssetScaleEditorPage() {
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
 
   // Active Brush selection state
-  const [activeBrush, setActiveBrush] = useState<{ path: string; name: string; category: string } | null>(null);
+  const [activeBrush, setActiveBrush] = useState<{ path: string; name: string; category: string; subIndex?: number; subName?: string } | null>(null);
 
   // Accordion categories toggle state
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
     residential: true,
     commercial: false,
+    destroyed: false,
     industrial: false,
     office: false,
     landmark: false,
@@ -559,10 +569,15 @@ export default function AssetScaleEditorPage() {
       // Initialize with default scale from registry if available, else 0.05
       const defaultScale = DEFAULT_ASSET_SCALES[path] || { scaleX: 0.06, scaleY: 0.06, scaleZ: 0.06 };
 
+      const hasSubIndex = activeBrush.subIndex !== undefined && activeBrush.subIndex >= 0;
+      const placementName = hasSubIndex && activeBrush.subName
+        ? `${activeBrush.name} - ${activeBrush.subName}`
+        : activeBrush.name;
+
       const newPlaced: PlacedAsset = {
         id: `placed_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
         assetPath: path,
-        name: activeBrush.name,
+        name: placementName,
         x: cx,
         y: cy,
         scaleX: defaultScale.scaleX,
@@ -573,7 +588,7 @@ export default function AssetScaleEditorPage() {
         posYOffset: defaultScale.positionOffset?.[1] || 0,
         posZOffset: defaultScale.positionOffset?.[2] || 0,
         category: activeBrush.category,
-        subIndex: defaultScale.subIndex !== undefined ? defaultScale.subIndex : -1,
+        subIndex: activeBrush.subIndex !== undefined ? activeBrush.subIndex : (defaultScale.subIndex !== undefined ? defaultScale.subIndex : -1),
         fpLeft: 0,
         fpRight: 0,
         fpTop: 0,
@@ -873,6 +888,38 @@ export default function AssetScaleEditorPage() {
             </div>
           </div>
 
+          {/* Active Brush Sub-Asset Selector (if composite asset in place mode) */}
+          {editorMode === 'place' && activeBrush && (
+            <div className="px-4 py-3 border-b border-[#1F6FEB]/20 bg-[#070b12] flex flex-col gap-2 shrink-0">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-gray-400 font-bold uppercase truncate max-w-[170px]">
+                  Brush: {activeBrush.name}
+                </span>
+                {activeBrush.subIndex !== undefined && activeBrush.subIndex >= 0 && (
+                  <span className="text-[9px] text-[#00e5ff] font-mono">
+                    Sub-Mesh #{activeBrush.subIndex + 1}
+                  </span>
+                )}
+              </div>
+              <Suspense fallback={<div className="text-[9px] text-gray-500 py-1 font-mono">Loading sub-assets...</div>}>
+                <SubAssetSelector
+                  path={activeBrush.path}
+                  subIndex={activeBrush.subIndex !== undefined ? activeBrush.subIndex : -1}
+                  onChange={(idx, subName) => {
+                    setActiveBrush(prev => {
+                      if (!prev) return null;
+                      return {
+                        ...prev,
+                        subIndex: idx,
+                        subName: subName
+                      };
+                    });
+                  }}
+                />
+              </Suspense>
+            </div>
+          )}
+
           {/* Catalog / Library Accordions */}
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2 border-b border-[#1F6FEB]/10">
             <div className="flex items-center gap-2 mb-2">
@@ -886,6 +933,7 @@ export default function AssetScaleEditorPage() {
             {Object.entries({
               residential: 'Residential Buildings',
               commercial: 'Commercial Buildings',
+              destroyed: 'Destroyed / Ruined Buildings',
               industrial: 'Industrial Buildings',
               office: 'Office Buildings',
               landmark: 'Landmark Spire Complex',
@@ -923,7 +971,8 @@ export default function AssetScaleEditorPage() {
                               setActiveBrush({
                                 path: asset.path,
                                 name: asset.name,
-                                category: catKey
+                                category: catKey,
+                                subIndex: -1
                               });
                               setEditorMode('place');
                             }}
@@ -1266,7 +1315,10 @@ export default function AssetScaleEditorPage() {
                 <SubAssetSelector
                   path={selectedAsset.assetPath}
                   subIndex={selectedAsset.subIndex}
-                  onChange={(idx) => updateSelectedAsset({ subIndex: idx })}
+                  onChange={(idx, subName) => {
+                    const cleanName = subName ? `${selectedAsset.name.split(' - ')[0]} - ${subName}` : selectedAsset.name.split(' - ')[0];
+                    updateSelectedAsset({ subIndex: idx, name: cleanName });
+                  }}
                 />
               </Suspense>
 
