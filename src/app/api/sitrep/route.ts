@@ -297,7 +297,7 @@ export async function POST(req: Request) {
     const payload = {
         instruction: buildInstruction(directive || 'Generate a tactical SITREP.', raw.mode),
         battlefield_data: battlefield_data || directive,
-        max_new_tokens: clamp(raw.max_new_tokens, 32, Number.MAX_SAFE_INTEGER, 512),
+        max_new_tokens: clamp(raw.max_new_tokens, 64, 1024, 512),
         temperature: clamp(raw.temperature, 0.0, 2.0, 0.45),
         top_p: clamp(raw.top_p, 0.1, 1.0, 0.9),
     };
