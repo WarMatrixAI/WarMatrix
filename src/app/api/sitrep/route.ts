@@ -389,16 +389,37 @@ export async function POST(req: Request) {
             signal: AbortSignal.timeout(INFERENCE_TIMEOUT_MS),
         });
 
-        const data = await res.json();
+        const contentType = res.headers.get('content-type') || '';
 
         if (!res.ok) {
+            let details = 'Inference failed on the AI server.';
+            try {
+                if (contentType.includes('application/json')) {
+                    const errorData = await res.json();
+                    details = errorData?.details ?? errorData?.error ?? details;
+                } else {
+                    const errorText = await res.text();
+                    if (errorText) details = errorText;
+                }
+            } catch {
+                // Keep default details when body parsing fails
+            }
+
             return NextResponse.json(
                 {
                     error: 'ai_inference_error',
-                    details: data?.details ?? data?.error ?? 'Inference failed on the AI server.',
+                    details,
                 },
                 { status: res.status }
             );
+        }
+
+        let data: any;
+        if (contentType.includes('application/json')) {
+            data = await res.json();
+        } else {
+            const text = await res.text();
+            data = { response: text };
         }
 
         // Normalize response for frontend consistency
