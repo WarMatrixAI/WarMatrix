@@ -106,7 +106,7 @@ export async function GET() {
     const cookieStore = await cookies();
     if (geminiApiKey) {
         const selectedModel = cookieStore.get(GEMINI_MODEL_COOKIE)?.value?.trim();
-        const modelName = selectedModel || (process.env.GEMINI_MODEL ?? 'gemini-3.5-flash');
+        const modelName = selectedModel || (process.env.GEMINI_MODEL ?? 'gemini-2.0-flash');
         return NextResponse.json({
             ok: true,
             service: 'gemini-api',
