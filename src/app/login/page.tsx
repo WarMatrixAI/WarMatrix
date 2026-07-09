@@ -196,8 +196,6 @@ export default function LoginPage() {
     setMousePos({ x, y });
   };
 
-  const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!commanderId || !authKey) {
