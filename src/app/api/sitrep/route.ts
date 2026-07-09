@@ -326,7 +326,7 @@ export async function POST(req: Request) {
 
             const cookieStore = await cookies();
             const selectedModel = cookieStore.get(GEMINI_MODEL_COOKIE)?.value?.trim();
-            const modelName = selectedModel || (process.env.GEMINI_MODEL ?? 'gemini-3.5-flash');
+            const modelName = selectedModel || (process.env.GEMINI_MODEL ?? 'gemini-1.5-flash');
 
             const genAI = new GoogleGenerativeAI(geminiApiKey);
             const model = genAI.getGenerativeModel({ 
