@@ -64,6 +64,11 @@ function clamp(val: number | undefined, min: number, max: number, def: number): 
     return Math.max(min, Math.min(max, Number(val)));
 }
 
+/** Validates that a schema is a non-null, non-array object. */
+function isValidSchema(schema: any): boolean {
+    return typeof schema === 'object' && schema !== null && !Array.isArray(schema);
+}
+
 async function getGeminiApiKey(): Promise<string> {
     const cookieStore = await cookies();
     const cookieKey = cookieStore.get(GEMINI_API_KEY_COOKIE)?.value?.trim() ?? '';
@@ -120,6 +125,14 @@ export async function GET() {
         const res = await fetch(`${AI_SERVER_BASE}/health`, {
             signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
         });
+
+        if (!res.ok) {
+            return NextResponse.json(
+                { ok: false, error: 'ai_server_error', details: `Server returned status ${res.status}` },
+                { status: res.status }
+            );
+        }
+
         const data = await res.json();
         let model = 'Local Model';
         if (data.use_lm_studio) {
@@ -341,7 +354,7 @@ export async function POST(req: Request) {
                     maxOutputTokens: payload.max_new_tokens,
                     topP: payload.top_p,
                     ...(isJsonRequested ? { responseMimeType: "application/json" } : {}),
-                    ...(raw.response_schema ? { responseSchema: raw.response_schema } : {})
+                    ...(isValidSchema(raw.response_schema) ? { responseSchema: raw.response_schema } : {})
                 }
             });
 
@@ -386,17 +399,19 @@ export async function POST(req: Request) {
             signal: AbortSignal.timeout(INFERENCE_TIMEOUT_MS),
         });
 
-        const data = await res.json();
-
         if (!res.ok) {
+            const text = await res.text();
+            console.error(`ai_sitrep fallback response failed with status ${res.status}:`, text.slice(0, 500));
             return NextResponse.json(
                 {
                     error: 'ai_inference_error',
-                    details: data?.details ?? data?.error ?? 'Inference failed on the AI server.',
+                    details: text.slice(0, 500) || `Inference failed on the AI server with status ${res.status}`,
                 },
                 { status: res.status }
             );
         }
+
+        const data = await res.json();
 
         // Normalize response for frontend consistency
         if (data.response && !data.ai_narrative_output) {

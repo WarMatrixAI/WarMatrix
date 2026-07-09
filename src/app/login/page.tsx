@@ -196,7 +196,7 @@ export default function LoginPage() {
     setMousePos({ x, y });
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!commanderId || !authKey) {
       setError("COMMANDER ID AND AUTHORIZATION KEY ARE REQUIRED");
@@ -210,76 +210,43 @@ export default function LoginPage() {
     }
 
     setError("");
-    setStatus("UPLINKING");
-    let p = 0;
-    
-    // Step 1: Uplinking (2 seconds)
-    const uplinkInterval = setInterval(() => {
-      p += 5;
-      setProgress(p);
-      if (p >= 100) {
-        clearInterval(uplinkInterval);
-        setStatus("DECRYPTING_KEY");
-        p = 0;
-        setProgress(0);
-        
-        // Step 2: Decrypting (2 seconds)
-        const decryptInterval = setInterval(() => {
-          p += 5;
-          setProgress(p);
-          if (p >= 100) {
-            clearInterval(decryptInterval);
-            setStatus("SYNCING_NODES");
-            p = 0;
-            setProgress(0);
-            
-            // Step 3: Syncing Nodes (2 seconds)
-            const syncInterval = setInterval(() => {
-              p += 5;
-              setProgress(p);
-              if (p >= 100) {
-                clearInterval(syncInterval);
-                setStatus("SCANNING");
-                p = 0;
-                setProgress(0);
-                
-                // Step 4: Scanning (2 seconds)
-                const scanInterval = setInterval(() => {
-                  p += 5;
-                  setProgress(p);
-                  if (p >= 100) {
-                    clearInterval(scanInterval);
-                    setStatus("VERIFYING");
-                    setTimeout(() => {
-                      setStatus("SUCCESS");
-                      localStorage.setItem("warmatrix_auth", "true");
-                      localStorage.setItem("warmatrix_auth_expires", (Date.now() + 1000 * 60 * 60 * 24).toString()); // Expires in 24 hours
-                      
-                      // Save Gemini API key & model to cookie
-                      const secureFlag = window.location.protocol === "https:" ? "; Secure" : "";
-                      if (trimmedKey) {
-                        document.cookie = `${GEMINI_API_KEY_COOKIE}=${encodeURIComponent(trimmedKey)}; Path=/; Max-Age=${GEMINI_API_KEY_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secureFlag}`;
-                        document.cookie = `${GEMINI_MODEL_COOKIE}=${encodeURIComponent(geminiModel)}; Path=/; Max-Age=${GEMINI_API_KEY_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secureFlag}`;
-                      } else {
-                        // Clear cookie if left empty
-                        document.cookie = `${GEMINI_API_KEY_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
-                        document.cookie = `${GEMINI_MODEL_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
-                      }
 
-                      setTimeout(() => {
-                        const params = new URLSearchParams(window.location.search);
-                        const next = params.get('next');
-                        router.push(next && next.startsWith('/') ? next : "/console");
-                      }, 800);
-                    }, 1000);
-                  }
-                }, 100);
-              }
-            }, 100);
-          }
-        }, 100);
+    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    
+    const animatePhase = async (statusValue: "UPLINKING" | "DECRYPTING_KEY" | "SYNCING_NODES" | "SCANNING") => {
+      setStatus(statusValue);
+      setProgress(0);
+      for (let p = 5; p <= 100; p += 5) {
+        setProgress(p);
+        await sleep(100);
       }
-    }, 100);
+    };
+
+    await animatePhase("UPLINKING");
+    await animatePhase("DECRYPTING_KEY");
+    await animatePhase("SYNCING_NODES");
+    await animatePhase("SCANNING");
+
+    setStatus("VERIFYING");
+    await sleep(1000);
+
+    setStatus("SUCCESS");
+    localStorage.setItem("warmatrix_auth", "true");
+    localStorage.setItem("warmatrix_auth_expires", (Date.now() + 1000 * 60 * 60 * 24).toString());
+
+    const secureFlag = window.location.protocol === "https:" ? "; Secure" : "";
+    if (trimmedKey) {
+      document.cookie = `${GEMINI_API_KEY_COOKIE}=${encodeURIComponent(trimmedKey)}; Path=/; Max-Age=${GEMINI_API_KEY_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secureFlag}`;
+      document.cookie = `${GEMINI_MODEL_COOKIE}=${encodeURIComponent(geminiModel)}; Path=/; Max-Age=${GEMINI_API_KEY_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secureFlag}`;
+    } else {
+      document.cookie = `${GEMINI_API_KEY_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+      document.cookie = `${GEMINI_MODEL_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+    }
+
+    await sleep(800);
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get('next');
+    router.push(next && next.startsWith('/') ? next : "/console");
   };
 
   return (
