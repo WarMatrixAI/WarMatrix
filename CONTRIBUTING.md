@@ -16,7 +16,7 @@
 
 #### **Do you intend to add a new feature or change an existing one?**
 
-* Suggest your change in the [GitHub Discussions Ideas](https://github.com/orgs/WarMatrixAI/discussions/categories/ideas) before writing extensive code.
+* Suggest your change in [GitHub Discussions Ideas](https://github.com/orgs/WarMatrixAI/discussions/categories/ideas) before writing extensive code.
 
 * Do not open an issue on GitHub until you have collected positive feedback about the change. GitHub issues are primarily intended for bug reports and fixes. When you do submit a PR for a feature, make sure to select the [✨ New Feature Template](https://github.com/WarMatrixAI/WarMatrix/tree/main/.github/PULL_REQUEST_TEMPLATE/feature.md).
 

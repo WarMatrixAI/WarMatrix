@@ -14,7 +14,7 @@
 - Always follow existing patterns found in the codebase.
 - Do not run terminal command lines containing `cd`. Execute all scripts and commands from the project workspace root directory.
 - Preserve existing comments and docstrings when modifying files.
-- Resolve active TypeScript compilation errors before finishing tasks. Reference [errors.txt](file:///c:/Users/FIDO/GitHub/WarMatrix/errors.txt) and [compile_errors.txt](file:///c:/Users/FIDO/GitHub/WarMatrix/compile_errors.txt) to verify type safety.
+- Resolve active TypeScript compilation errors before finishing tasks. 
 - Keep the continuous coordinate system as floating-point numbers. Never regress coordinates back to discrete integer grids.
 - Ensure all API endpoints conform strictly to the specified data models and JSON payload formats.
 
