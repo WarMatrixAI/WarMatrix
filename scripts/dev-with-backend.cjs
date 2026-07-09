@@ -25,27 +25,11 @@ function prefixAndWrite(stream, label, data) {
   }
 }
 
-function quoteCmdArg(arg) {
-  if (!/[\s"]/u.test(arg)) return arg;
-  return `"${arg.replace(/"/g, '\\"')}"`;
-}
-
 function startProcess({ label, cmd, args, cwd, shell = false, env = process.env }) {
-  let runCmd = cmd;
-  let runArgs = args;
-  let runShell = shell;
-
-  if (isWin) {
-    const commandLine = [cmd, ...args].map((a) => quoteCmdArg(String(a))).join(' ');
-    runCmd = 'cmd.exe';
-    runArgs = ['/d', '/s', '/c', commandLine];
-    runShell = false;
-  }
-
-  const child = spawn(runCmd, runArgs, {
+  const child = spawn(cmd, args, {
     cwd,
     stdio: ['inherit', 'pipe', 'pipe'],
-    shell: runShell,
+    shell: false,
     env,
   });
 

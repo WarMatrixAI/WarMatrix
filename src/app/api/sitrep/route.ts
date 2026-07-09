@@ -367,8 +367,11 @@ export async function POST(req: Request) {
                 ai_narrative_output: responseText,
                 source: 'gemini_api'
             });
-        } catch (err: any) {
-            if (err?.message?.includes('deadline exceeded') || err?.name === 'TimeoutError') {
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : (typeof err === 'string' ? err : '');
+            const errorName = err instanceof Error ? err.name : '';
+
+            if (errorMessage.includes('deadline exceeded') || errorName === 'TimeoutError') {
                 return NextResponse.json(
                     {
                         error: 'gemini_api_timeout',
@@ -381,7 +384,7 @@ export async function POST(req: Request) {
             return NextResponse.json(
                 {
                     error: 'gemini_api_failed',
-                    details: err?.message ?? 'Unknown error during Gemini AI inference.',
+                    details: errorMessage || 'Unknown error during Gemini AI inference.',
                 },
                 { status: 500 }
             );
