@@ -196,7 +196,7 @@ export default function LoginPage() {
     setMousePos({ x, y });
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!commanderId || !authKey) {
       setError("COMMANDER ID AND AUTHORIZATION KEY ARE REQUIRED");
@@ -413,7 +413,7 @@ export default function LoginPage() {
                 type="submit"
                 className="mt-4 w-full bg-[#1F6FEB] hover:bg-[#3A8DFF] text-white font-bold py-3.5 rounded-sm uppercase tracking-widest text-[12px] transition-all flex items-center justify-center gap-2 group shadow-[0_0_15px_rgba(31,111,235,0.2)]"
               >
-                Intialize Uplink
+                Initialize Uplink
                 <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
             </form>
