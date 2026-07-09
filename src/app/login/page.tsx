@@ -196,7 +196,9 @@ export default function LoginPage() {
     setMousePos({ x, y });
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!commanderId || !authKey) {
       setError("COMMANDER ID AND AUTHORIZATION KEY ARE REQUIRED");
