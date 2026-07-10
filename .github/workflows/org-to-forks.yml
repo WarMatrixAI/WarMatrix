@@ -1,0 +1,40 @@
+name: Push Org Updates to Member Forks
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync-downstream:
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'WarMatrixAI'
+
+    steps:
+      - name: Verify Secret Exists
+        env:
+          GH_TOKEN: ${{ secrets.ORG_SYNC_PAT }}
+        run: |
+          echo "Token length:"
+          echo -n "$GH_TOKEN" | wc -c
+
+      - name: Check GitHub CLI
+        env:
+          GH_TOKEN: ${{ secrets.ORG_SYNC_PAT }}
+        run: |
+          gh --version
+          gh auth status || true
+
+      - name: Sync Member Forks
+        env:
+          GH_TOKEN: ${{ secrets.ORG_SYNC_PAT }}
+        run: |
+          MEMBERS=("zzz-creator" "ytfl")
+
+          for MEMBER in "${MEMBERS[@]}"; do
+            echo "=================================="
+            echo "Syncing $MEMBER/${{ github.event.repository.name }}"
+            echo "=================================="
+
+            gh repo sync "$MEMBER/${{ github.event.repository.name }}" --branch main
+          done
