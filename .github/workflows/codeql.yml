@@ -10,7 +10,52 @@ on:
   workflow_dispatch:
   
 jobs:
+  # Job 1: Deep Semantic Analysis of your source code
+  analyze:
+    name: CodeQL Analysis (${{ matrix.language }})
+    runs-on: 'ubuntu-latest'
+    permissions:
+      security-events: write   # Required to upload security results
+      packages: read           # Required to fetch internal or private CodeQL packs
+      actions: read            # Required for private repositories
+      contents: read           # Required to checkout repository code
 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: javascript-typescript
+            build-mode: none
+          - language: python
+            build-mode: none
+        # CodeQL supports: 'actions', 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'rust', 'swift'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Initializes the CodeQL tools for scanning.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+        # Prefix the list here with "+" to use these queries alongside default ones.
+        # queries: +security-extended,security-and-quality
+
+    # If the analyze step fails for a compiled language, modify the matrix above
+    # to set the build mode to "manual" and replace the echo commands below.
+    - name: Run manual build steps
+      if: matrix.build-mode == 'manual'
+      shell: bash
+      run: |
+        echo 'Replace this with the commands to build your code if a manual build is required.'
+        exit 1
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
+      with:
+        category: "/language:${{matrix.language}}"
  # Job 1: Fast Dependency (SCA) and Infrastructure-as-Code (IaC) Scan
   supply-chain:
     name: Trivy Security Scan
