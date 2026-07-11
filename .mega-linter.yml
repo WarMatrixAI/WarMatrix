@@ -1,4 +1,13 @@
 ---
+# Disable heavy/historical linters
 DISABLE:
   - SPELL
   - COPYPASTE
+  - REPOSITORY_GITLEAKS
+  - REPOSITORY_CHECKOV
+  - REPOSITORY_KICS
+  - REPOSITORY_GRYPE
+
+# Only use the GitHub PR Comment reporter, disable local file generation
+REPORTERS:
+  - github_comment_reporter
