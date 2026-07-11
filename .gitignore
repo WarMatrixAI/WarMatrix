@@ -25,3 +25,6 @@ yarn-error.log*
 tsconfig.tsbuildinfo
 addtions.md
 .vercel
+
+# MegaLinter
+megalinter-reports/
