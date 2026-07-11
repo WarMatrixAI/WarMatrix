@@ -7,23 +7,50 @@ on:
   pull_request:
     branches: [main, master]
 
+# Elevating permissions to allow PR comments and automated fixing commits
 permissions:
-  contents: read
+  contents: write
   statuses: write
+  pull_requests: write
 
 jobs:
   megalinter:
     name: MegaLinter
     runs-on: ubuntu-latest
     steps:
+      # Git Checkout
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
+      # MegaLinter Execution
       - name: Run MegaLinter
         uses: oxsecurity/megalinter@v7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_ALL_CODEBASE: false
+          # Enables individual linter engines to fix errors locally in the runner
+          APPLY_FIXES: all 
+          APPLY_FIXES_EVENT: all
+
+      # Push automated fixes back to your repository branch
+      - name: Commit Automated Fixes
+        if: success() || failure()
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          branch: ${{ github.head_ref || github.ref_name }}
+          commit_message: "chore: automated code formatting fixes by MegaLinter"
+          commit_user_name: megalinter-bot
+          commit_user_email: megalinter-bot@ox.security
+
+      # Upload the visual HTML dashboards and asset logs
+      - name: Upload MegaLinter Reports
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MegaLinter-reports
+          path: |
+            megalinter-reports
+            mega-linter.log
