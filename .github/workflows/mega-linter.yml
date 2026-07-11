@@ -1,13 +1,12 @@
 ---
 name: MegaLinter
 
+# Trigger only on pull requests
 on:
-  push:
-    branches: [main, master]
   pull_request:
     branches: [main, master]
 
-# Elevating permissions to allow PR comments and automated fixing commits
+# Permissions required to comment on PRs and push fixes
 permissions:
   contents: write
   statuses: write
@@ -25,17 +24,16 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      # MegaLinter Execution
+      # MegaLinter Execution with auto-fixes enabled
       - name: Run MegaLinter
         uses: oxsecurity/megalinter@v7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_ALL_CODEBASE: false
-          # Enables individual linter engines to fix errors locally in the runner
           APPLY_FIXES: all 
           APPLY_FIXES_EVENT: all
 
-      # Push automated fixes back to your repository branch
+      # Push automated fixes back to your PR branch
       - name: Commit Automated Fixes
         if: success() || failure()
         uses: stefanzweifel/git-auto-commit-action@v5
@@ -44,13 +42,3 @@ jobs:
           commit_message: "chore: automated code formatting fixes by MegaLinter"
           commit_user_name: megalinter-bot
           commit_user_email: megalinter-bot@ox.security
-
-      # Upload the visual HTML dashboards and asset logs
-      - name: Upload MegaLinter Reports
-        if: success() || failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: MegaLinter-reports
-          path: |
-            megalinter-reports
-            mega-linter.log
