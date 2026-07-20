@@ -19,6 +19,7 @@ yarn-error.log*
 /.switchboard
 /.venv
 /.idx
+/.clinerules
 *.pyc
 *.tsbuildinfo
 *.tsbuildinfo
