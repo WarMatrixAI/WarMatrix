@@ -35,7 +35,7 @@
 ---
 
 ### ⚠️ Licensing Note
-By contributing to WarMatrix, you agree that your contributions will be licensed under the **GNU General Public License v3.0 (GPLv3)**. Please ensure any dependencies or code snippets you introduce comply with this copyleft license.
+By contributing to WarMatrix, you agree that your contributions will be licensed under the **GNU AFFERO GENERAL PUBLIC LICENSE v3.0 (AGPLv3)**. Please ensure any dependencies or code snippets you introduce comply with this copyleft license.
 
 WarMatrix is a volunteer effort. We encourage you to pitch in and join the team! Please introduce yourself or submit a request to join in [GitHub Discussions General](https://github.com/orgs/WarMatrixAI/discussions/categories/general).
 
