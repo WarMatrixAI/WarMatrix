@@ -1,13 +1,14 @@
----
-# Disable heavy/historical linters
+VALIDATE_ALL_CODEBASE: false
+
+APPLY_FIXES: all
+
+SHOW_ELAPSED_TIME: true
+
+PRINT_ALL_FILES: false
+
+REPORT_OUTPUT_FOLDER: megalinter-reports
+
+# Optional
 DISABLE:
   - SPELL
   - COPYPASTE
-  - REPOSITORY_GITLEAKS
-  - REPOSITORY_CHECKOV
-  - REPOSITORY_KICS
-  - REPOSITORY_GRYPE
-
-# Only use the GitHub PR Comment reporter, disable local file generation
-REPORTERS:
-  - github_comment_reporter
