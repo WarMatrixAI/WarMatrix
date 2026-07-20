@@ -1,6 +1,6 @@
 # WarMatrix: AI-Enabled Tactical Simulation Console
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: AGPL-3.0](https://shields.io)](https://opensource.org)
 ![Next.js 15](https://img.shields.io/badge/Next.js-15-black?logo=next.js)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-009688?logo=fastapi)
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react)
