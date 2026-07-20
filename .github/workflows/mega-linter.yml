@@ -1,44 +1,44 @@
----
 name: MegaLinter
 
-# Trigger only on pull requests
 on:
   pull_request:
-    branches: [main, master]
+    branches:
+      - main
+      - master
 
-# Permissions required to comment on PRs and push fixes
 permissions:
-  contents: write
+  contents: read
+  pull-requests: write
+  checks: write
   statuses: write
-  pull_requests: write
 
 jobs:
   megalinter:
-    name: MegaLinter
     runs-on: ubuntu-latest
+
     steps:
-      # Git Checkout
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      # MegaLinter Execution with auto-fixes enabled
-      - name: Run MegaLinter
-        uses: oxsecurity/megalinter@v7
+      - name: MegaLinter
+        id: ml
+        uses: oxsecurity/megalinter@v8
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VALIDATE_ALL_CODEBASE: false
-          APPLY_FIXES: all 
-          APPLY_FIXES_EVENT: all
 
-      # Push automated fixes back to your PR branch
-      - name: Commit Automated Fixes
-        if: success() || failure()
-        uses: stefanzweifel/git-auto-commit-action@v5
+          VALIDATE_ALL_CODEBASE: false
+
+          APPLY_FIXES: all
+          APPLY_FIXES_EVENT: pull_request
+
+          SHOW_ELAPSED_TIME: true
+          PRINT_ALL_FILES: false
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          branch: ${{ github.head_ref || github.ref_name }}
-          commit_message: "chore: automated code formatting fixes by MegaLinter"
-          commit_user_name: megalinter-bot
-          commit_user_email: megalinter-bot@ox.security
+          name: megalinter-reports
+          path: megalinter-reports/
