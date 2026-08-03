@@ -6,10 +6,10 @@
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?logo=tailwind-css)
 ![Three.js](https://img.shields.io/badge/Three.js-r178-black?logo=three.js)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)
-![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)
+![Python](https://img.shields.io/badge/Python-3-3776AB?logo=python)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.5-EE4C2C?logo=pytorch)
-![NVIDIA CUDA](https://img.shields.io/badge/CUDA-12.1-76B900?logo=nvidia)
+![NVIDIA CUDA](https://img.shields.io/badge/CUDA-12-76B900?logo=nvidia)
 
 Tested on: ![](https://valid.x86.fr/cache/banner/6qegm1-6.png)
 
@@ -117,5 +117,5 @@ npm run dev
 
 ## 📜 License
 
-WarMatrix is released under the **GNU AFFERO GENERAL PUBLIC LICENSE**. See [LICENSE](LICENSE) for more details.
+WarMatrix is released under the **GNU AFFERO GENERAL PUBLIC LICENSE v3**. See [LICENSE](LICENSE) for more details.
 
